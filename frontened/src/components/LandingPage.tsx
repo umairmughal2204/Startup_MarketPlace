@@ -42,7 +42,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             transition={{ delay: 0.2 }}
             className="flex items-center gap-3"
           >
-            <div className="text-3xl font-bold bg-gradient-to-r from-[#0066cc] to-[#008b8b] bg-clip-text text-transparent">
+            <div className="text-3xl font-bold bg-linear-to-r from-[#0066cc] to-[#008b8b] bg-clip-text text-transparent">
               SL
             </div>
             <span className={`text-2xl font-bold ${scrolled ? 'text-gray-900' : 'text-white'}`}>
