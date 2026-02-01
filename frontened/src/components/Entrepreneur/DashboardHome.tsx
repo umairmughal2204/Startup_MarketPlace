@@ -1,19 +1,69 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp } from 'lucide-react';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
+
+interface IdeaItem {
+  id: string;
+  title: string;
+  status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
+  aiScore: number | null;
+  feedbackCount: number;
+}
 
 export const DashboardHome = () => {
-  const stats = [
-    { label: 'Ideas Submitted', value: '3', icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-    { label: 'Products Ordered', value: '12', icon: <ShoppingCart className="w-6 h-6" />, color: 'bg-[#0088dd]' },
-    { label: 'Investor Feedback', value: '8', icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#00aaee]' },
-    { label: 'Market Score', value: '8.5/10', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#0099dd]' },
-  ];
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const recentIdeas = [
-    { id: '1', title: 'AI-Powered Fitness App', status: 'Under Review', score: '8.5/10', feedback: 5 },
-    { id: '2', title: 'Sustainable Packaging Solution', status: 'Approved', score: '9.2/10', feedback: 12 },
-    { id: '3', title: 'EdTech Platform for K-12', status: 'Pending', score: '7.8/10', feedback: 3 },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    entrepreneurApi
+      .getIdeas()
+      .then((data) => {
+        if (isMounted) {
+          setIdeas(data);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('Failed to load ideas');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalIdeas = ideas.length;
+    const feedbackTotal = ideas.reduce((sum, idea) => sum + (idea.feedbackCount || 0), 0);
+    const averageScore = ideas.length
+      ? (ideas.reduce((sum, idea) => sum + (idea.aiScore || 0), 0) / ideas.length).toFixed(1)
+      : '0.0';
+
+    return [
+      { label: 'Ideas Submitted', value: String(totalIdeas), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
+      { label: 'Products Ordered', value: '0', icon: <ShoppingCart className="w-6 h-6" />, color: 'bg-[#0088dd]' },
+      { label: 'Investor Feedback', value: String(feedbackTotal), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#00aaee]' },
+      { label: 'Market Score', value: `${averageScore}/10`, icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#0099dd]' },
+    ];
+  }, [ideas]);
+
+  const recentIdeas = ideas.slice(0, 5).map((idea) => ({
+    id: idea.id,
+    title: idea.title,
+    status: idea.status,
+    score: idea.aiScore ? `${idea.aiScore}/10` : 'N/A',
+    feedback: idea.feedbackCount || 0,
+  }));
 
   return (
     <div className="space-y-8">
@@ -56,7 +106,28 @@ export const DashboardHome = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {recentIdeas.map((idea) => (
+              {isLoading && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={4}>
+                    Loading ideas...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && error && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-red-600" colSpan={4}>
+                    {error}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && recentIdeas.length === 0 && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={4}>
+                    No ideas yet. Submit your first idea to see it here.
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && recentIdeas.map((idea) => (
                 <tr key={idea.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{idea.title}</div>

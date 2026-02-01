@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Package, Clock, Truck, CheckCircle } from 'lucide-react';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface Order {
   id: string;
@@ -8,43 +9,40 @@ interface Order {
   quantity: number;
   price: number;
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered';
-  orderDate: Date;
-  estimatedDelivery: Date;
+  orderDate: string;
+  estimatedDelivery: string;
 }
 
 export const MyOrders = () => {
-  const orders: Order[] = [
-    {
-      id: 'ORD-001',
-      productName: 'Cloud Hosting Package',
-      supplier: 'TechSupply Co.',
-      quantity: 1,
-      price: 299,
-      status: 'Delivered',
-      orderDate: new Date('2026-01-10'),
-      estimatedDelivery: new Date('2026-01-12'),
-    },
-    {
-      id: 'ORD-002',
-      productName: 'Logo Design Service',
-      supplier: 'Creative Studio',
-      quantity: 1,
-      price: 499,
-      status: 'Processing',
-      orderDate: new Date('2026-01-13'),
-      estimatedDelivery: new Date('2026-01-20'),
-    },
-    {
-      id: 'ORD-003',
-      productName: 'SEO Optimization Package',
-      supplier: 'Digital Growth',
-      quantity: 1,
-      price: 899,
-      status: 'Pending',
-      orderDate: new Date('2026-01-15'),
-      estimatedDelivery: new Date('2026-01-22'),
-    },
-  ];
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    entrepreneurApi
+      .getOrders()
+      .then((data) => {
+        if (isMounted) {
+          setOrders(data);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('Failed to load orders');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -76,31 +74,40 @@ export const MyOrders = () => {
     }
   };
 
+  const orderStats = useMemo(() => {
+    return {
+      total: orders.length,
+      processing: orders.filter((o) => o.status === 'Processing').length,
+      shipped: orders.filter((o) => o.status === 'Shipped').length,
+      delivered: orders.filter((o) => o.status === 'Delivered').length,
+    };
+  }, [orders]);
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid md:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-gray-900 mb-1">
-            {orders.length}
+            {orderStats.total}
           </div>
           <div className="text-sm text-gray-600">Total Orders</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-[#0066cc] mb-1">
-            {orders.filter(o => o.status === 'Processing').length}
+            {orderStats.processing}
           </div>
           <div className="text-sm text-gray-600">Processing</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-[#0088dd] mb-1">
-            {orders.filter(o => o.status === 'Shipped').length}
+            {orderStats.shipped}
           </div>
           <div className="text-sm text-gray-600">Shipped</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-[#00aaee] mb-1">
-            {orders.filter(o => o.status === 'Delivered').length}
+            {orderStats.delivered}
           </div>
           <div className="text-sm text-gray-600">Delivered</div>
         </div>
@@ -139,12 +146,33 @@ export const MyOrders = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {orders.map((order) => (
+              {isLoading && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={7}>
+                    Loading orders...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && error && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-red-600" colSpan={7}>
+                    {error}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && orders.length === 0 && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={7}>
+                    No orders yet.
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{order.id}</div>
                     <div className="text-sm text-gray-500">
-                      {order.orderDate.toLocaleDateString()}
+                      {new Date(order.orderDate).toLocaleDateString()}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -172,7 +200,7 @@ export const MyOrders = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {order.estimatedDelivery.toLocaleDateString()}
+                    {new Date(order.estimatedDelivery).toLocaleDateString()}
                   </td>
                 </tr>
               ))}

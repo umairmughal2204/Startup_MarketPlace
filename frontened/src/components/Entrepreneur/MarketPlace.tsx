@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Filter, ShoppingCart, Star, X, CreditCard } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { ProductDetail } from './ProductDetail';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface Product {
   id: string;
@@ -127,15 +128,25 @@ export const MarketPlace = () => {
     setPaymentModal({ isOpen: false, product: null });
   };
 
-  const handlePlaceOrder = () => {
-    if (paymentModal.product) {
-      const productName = paymentModal.product.name;
+  const handlePlaceOrder = async () => {
+    if (!paymentModal.product) return;
+
+    try {
+      await entrepreneurApi.createOrder({
+        productName: paymentModal.product.name,
+        supplier: paymentModal.product.supplier,
+        quantity,
+        price: paymentModal.product.price,
+      });
+
       addNotification({
         type: 'order',
         title: 'Order Placed',
-        message: `You have successfully placed an order for ${productName}`,
+        message: `You have successfully placed an order for ${paymentModal.product.name}`,
       });
       handleClosePaymentModal();
+    } catch (error) {
+      alert('Failed to place order. Please try again.');
     }
   };
 

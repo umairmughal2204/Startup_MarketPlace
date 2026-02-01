@@ -1,0 +1,20 @@
+const mongoose = require("mongoose");
+
+const orderSchema = new mongoose.Schema(
+  {
+    productName: { type: String, required: true, trim: true },
+    supplier: { type: String, required: true, trim: true },
+    quantity: { type: Number, required: true, min: 1 },
+    price: { type: Number, required: true, min: 0 },
+    status: {
+      type: String,
+      default: "Pending",
+      enum: ["Pending", "Processing", "Shipped", "Delivered"],
+    },
+    orderDate: { type: String, required: true },
+    estimatedDelivery: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+module.exports = mongoose.model("Order", orderSchema);

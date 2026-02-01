@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface IdeaSubmission {
   title: string;
@@ -60,9 +61,13 @@ export const SubmitIdea = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    try {
+      await entrepreneurApi.createIdea({
+        title: formData.title,
+        category: formData.category,
+        description: formData.description,
+      });
 
-    // Simulate API call and AI analysis
-    setTimeout(() => {
       const mockAIFeedback: AIFeedback = {
         marketFit: 8.5,
         feasibility: 7.8,
@@ -84,14 +89,22 @@ export const SubmitIdea = () => {
       };
 
       setAiAnalysis(mockAIFeedback);
-      setIsSubmitting(false);
-
       addNotification({
         type: 'general',
         title: 'Idea Submitted Successfully',
-        message: `Your idea "${formData.title}" has been analyzed and sent to admin for approval. You'll be notified once it's reviewed.`,
+        message: `Your idea "${formData.title}" has been sent for review. You'll be notified once it's reviewed.`,
       });
-    }, 2000);
+      setFormData({
+        title: '',
+        category: '',
+        description: '',
+        file: null,
+      });
+    } catch (error) {
+      alert('Failed to submit idea. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
