@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Star, ShoppingCart, Package, Download, Shield, CreditCard, X, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Star, ShoppingCart, Package, Download, Shield, X, MessageCircle, CheckCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface Product {
   id: string;
@@ -31,6 +32,8 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   const { addNotification } = useNotifications();
   const { openChatWithContact } = useChat();
   const [paymentModal, setPaymentModal] = useState<PaymentModal>({ isOpen: false });
+  const [quantity, setQuantity] = useState(1);
+  const [orderSuccess, setOrderSuccess] = useState(false);
 
   // Enhanced product data
   const productData: Product = {
@@ -55,14 +58,28 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
     setPaymentModal({ isOpen: false });
   };
 
-  const handlePlaceOrder = () => {
-    addNotification({
-      type: 'order',
-      title: 'Order Placed Successfully',
-      message: `You have successfully purchased ${productData.name}`,
-    });
-    handleClosePaymentModal();
-    onBack();
+  const handlePlaceOrder = async () => {
+    const confirmOrder = window.confirm('Place this order?');
+    if (!confirmOrder) return;
+
+    try {
+      await entrepreneurApi.createOrder({
+        productName: productData.name,
+        supplier: productData.supplier,
+        quantity,
+        price: productData.price,
+      });
+
+      addNotification({
+        type: 'order',
+        title: 'Order Placed Successfully',
+        message: `You have successfully placed an order for ${productData.name}`,
+      });
+      setOrderSuccess(true);
+      handleClosePaymentModal();
+    } catch (error) {
+      alert('Failed to place order. Please try again.');
+    }
   };
 
   const handleMessageSupplier = () => {
@@ -80,7 +97,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
     });
   };
 
-  const totalPrice = productData.price;
+  const totalPrice = productData.price * quantity;
 
   return (
     <div className="space-y-6">
@@ -218,12 +235,12 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Order Confirmation Modal */}
       {paymentModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Complete Your Order</h2>
+              <h2 className="text-2xl font-bold">Confirm Your Order</h2>
               <button
                 onClick={handleClosePaymentModal}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -242,26 +259,20 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                   <span className="font-semibold">{productData.name}</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">License Type:</span>
-                  <span className="font-semibold">Single User</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Quantity:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-right"
+                  />
                 </div>
                 
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
-                  <span className="font-bold text-2xl text-[#0066cc]">${totalPrice}</span>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <h3 className="font-bold mb-3">Payment Method</h3>
-                <div className="border border-gray-300 rounded-lg p-4 flex items-center gap-3">
-                  <CreditCard className="w-6 h-6 text-[#0066cc]" />
-                  <div>
-                    <p className="font-semibold">Credit Card</p>
-                    <p className="text-sm text-gray-500">Secure payment processing</p>
-                  </div>
+                  <span className="font-bold text-2xl text-[#0066cc]">${totalPrice.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -277,8 +288,48 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                   onClick={handlePlaceOrder}
                   className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
                 >
-                  <CreditCard className="w-5 h-5" />
-                  Pay ${totalPrice}
+                  <ShoppingCart className="w-5 h-5" />
+                  Confirm Order
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Success Modal */}
+      {orderSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Order Confirmed</h2>
+              <button
+                onClick={() => {
+                  setOrderSuccess(false);
+                  onBack();
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 text-green-600">
+                <CheckCircle className="w-6 h-6" />
+                <p className="font-semibold">Your order has been placed successfully.</p>
+              </div>
+              <p className="text-gray-600">
+                Order placed for <span className="font-semibold">{productData.name}</span>.
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setOrderSuccess(false);
+                    onBack();
+                  }}
+                  className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition"
+                >
+                  OK
                 </button>
               </div>
             </div>

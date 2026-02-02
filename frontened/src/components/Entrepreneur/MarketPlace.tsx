@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Filter, ShoppingCart, Star, X, CreditCard } from 'lucide-react';
+import { Search, Filter, ShoppingCart, Star, X, CheckCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { ProductDetail } from './ProductDetail';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
@@ -32,6 +32,7 @@ export const MarketPlace = () => {
     product: null,
   });
   const [quantity, setQuantity] = useState(1);
+  const [orderSuccess, setOrderSuccess] = useState<{ productName: string } | null>(null);
 
   const categories = ['All', 'Productivity', 'Development', 'Design', 'Business', 'Analytics'];
 
@@ -131,6 +132,9 @@ export const MarketPlace = () => {
   const handlePlaceOrder = async () => {
     if (!paymentModal.product) return;
 
+    const confirmOrder = window.confirm('Place this order?');
+    if (!confirmOrder) return;
+
     try {
       await entrepreneurApi.createOrder({
         productName: paymentModal.product.name,
@@ -144,6 +148,7 @@ export const MarketPlace = () => {
         title: 'Order Placed',
         message: `You have successfully placed an order for ${paymentModal.product.name}`,
       });
+      setOrderSuccess({ productName: paymentModal.product.name });
       handleClosePaymentModal();
     } catch (error) {
       alert('Failed to place order. Please try again.');
@@ -253,12 +258,12 @@ export const MarketPlace = () => {
         </div>
       )}
 
-      {/* Payment Modal */}
+      {/* Order Confirmation Modal */}
       {paymentModal.isOpen && paymentModal.product && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Complete Your Order</h2>
+              <h2 className="text-2xl font-bold">Confirm Your Order</h2>
               <button
                 onClick={handleClosePaymentModal}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -277,26 +282,22 @@ export const MarketPlace = () => {
                   <span className="font-semibold">{paymentModal.product.name}</span>
                 </div>
                 
-                <div className="flex justify-between">
-                  <span className="text-gray-600">License Type:</span>
-                  <span className="font-semibold">Single User</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Quantity:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-right"
+                  />
                 </div>
                 
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
-                  <span className="font-bold text-2xl text-[#0066cc]">${paymentModal.product.price}</span>
-                </div>
-              </div>
-
-              {/* Payment Method */}
-              <div>
-                <h3 className="font-bold mb-3">Payment Method</h3>
-                <div className="border border-gray-300 rounded-lg p-4 flex items-center gap-3">
-                  <CreditCard className="w-6 h-6 text-[#0066cc]" />
-                  <div>
-                    <p className="font-semibold">Credit Card</p>
-                    <p className="text-sm text-gray-500">Secure payment processing</p>
-                  </div>
+                  <span className="font-bold text-2xl text-[#0066cc]">
+                    ${(paymentModal.product.price * quantity).toFixed(2)}
+                  </span>
                 </div>
               </div>
 
@@ -312,8 +313,42 @@ export const MarketPlace = () => {
                   onClick={handlePlaceOrder}
                   className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
                 >
-                  <CreditCard className="w-5 h-5" />
-                  Pay ${paymentModal.product.price}
+                  <ShoppingCart className="w-5 h-5" />
+                  Confirm Order
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Success Modal */}
+      {orderSuccess && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Order Confirmed</h2>
+              <button
+                onClick={() => setOrderSuccess(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 text-green-600">
+                <CheckCircle className="w-6 h-6" />
+                <p className="font-semibold">Your order has been placed successfully.</p>
+              </div>
+              <p className="text-gray-600">
+                Order placed for <span className="font-semibold">{orderSuccess.productName}</span>.
+              </p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setOrderSuccess(null)}
+                  className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition"
+                >
+                  OK
                 </button>
               </div>
             </div>
