@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Filter, ShoppingCart, Star, X, CheckCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { ProductDetail } from './ProductDetail';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { useAuth } from '../../context/AuthContext';
+import { supplierApi } from '../../api/supplierApi';
 
 interface Product {
   id: string;
@@ -14,6 +16,8 @@ interface Product {
   category: string;
   description: string;
   features?: string[];
+  imageUrl?: string;
+  imageName?: string;
 }
 
 interface PaymentModal {
@@ -23,6 +27,8 @@ interface PaymentModal {
 
 export const MarketPlace = () => {
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [cart, setCart] = useState<string[]>([]);
@@ -33,77 +39,47 @@ export const MarketPlace = () => {
   });
   const [quantity, setQuantity] = useState(1);
   const [orderSuccess, setOrderSuccess] = useState<{ productName: string } | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = ['All', 'Productivity', 'Development', 'Design', 'Business', 'Analytics'];
+  const categories = ['All', 'Software', 'Hardware', 'Services', 'Marketing', 'Legal'];
 
-  const products: Product[] = [
-    {
-      id: '1',
-      name: 'Project Management Pro',
-      supplier: 'TaskFlow Inc.',
-      price: 49,
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400',
-      category: 'Productivity',
-      description: 'Complete project management software for teams',
-      features: ['Task Management', 'Team Collaboration', 'Time Tracking', 'Gantt Charts', 'Mobile Apps'],
-    },
-    {
-      id: '2',
-      name: 'CRM Suite Enterprise',
-      supplier: 'SalesForce Pro',
-      price: 99,
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400',
-      category: 'Business',
-      description: 'Advanced customer relationship management system',
-      features: ['Contact Management', 'Sales Pipeline', 'Email Integration', 'Reporting Dashboard', 'API Access'],
-    },
-    {
-      id: '3',
-      name: 'Code Editor Ultimate',
-      supplier: 'DevTools Ltd.',
-      price: 79,
-      rating: 4.7,
-      image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400',
-      category: 'Development',
-      description: 'Professional IDE for modern development',
-      features: ['IntelliSense', 'Git Integration', 'Debugging Tools', 'Extensions Marketplace', 'Cloud Sync'],
-    },
-    {
-      id: '4',
-      name: 'Design Studio Pro',
-      supplier: 'Creative Tools Co.',
-      price: 129,
-      rating: 4.6,
-      image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400',
-      category: 'Design',
-      description: 'Complete graphic design and prototyping software',
-      features: ['Vector Editing', 'Prototyping', 'Collaboration', 'Asset Library', 'Export Formats'],
-    },
-    {
-      id: '5',
-      name: 'Analytics Dashboard',
-      supplier: 'DataViz Inc.',
-      price: 89,
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-      category: 'Analytics',
-      description: 'Real-time business analytics and reporting',
-      features: ['Custom Dashboards', 'Data Integration', 'Real-time Updates', 'Export Reports', 'Team Sharing'],
-    },
-    {
-      id: '6',
-      name: 'Invoice Manager',
-      supplier: 'BizTools Corp.',
-      price: 39,
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400',
-      category: 'Business',
-      description: 'Automated invoicing and payment tracking',
-      features: ['Invoice Templates', 'Payment Tracking', 'Expense Management', 'Tax Reports', 'Client Portal'],
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    supplierApi
+      .getProducts()
+      .then((data) => {
+        if (isMounted) {
+          const mapped = data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            supplier: p.supplierName || 'Supplier',
+            price: p.price,
+            rating: 4.7,
+            image: p.imageUrl ? `${API_BASE}${p.imageUrl}` : (p.image || ''),
+            imageUrl: p.imageUrl || '',
+            imageName: p.imageName || '',
+            category: p.category,
+            description: p.description,
+            features: p.features || [],
+          }));
+          setProducts(mapped);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setError('Failed to load products');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -141,6 +117,8 @@ export const MarketPlace = () => {
         supplier: paymentModal.product.supplier,
         quantity,
         price: paymentModal.product.price,
+        entrepreneurName: user?.name || 'Entrepreneur',
+        entrepreneurEmail: user?.email || '',
       });
 
       addNotification({
@@ -203,10 +181,16 @@ export const MarketPlace = () => {
 
       {/* Products Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product) => (
+        {isLoading && (
+          <div className="bg-white rounded-lg shadow p-6 text-gray-500">Loading products...</div>
+        )}
+        {!isLoading && error && (
+          <div className="bg-white rounded-lg shadow p-6 text-red-600">{error}</div>
+        )}
+        {!isLoading && !error && filteredProducts.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-xl transition">
             <img
-              src={product.image}
+              src={product.imageUrl ? `${API_BASE}${product.imageUrl}` : (product.image || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400')}
               alt={product.name}
               className="w-full h-48 object-cover"
             />
@@ -252,7 +236,7 @@ export const MarketPlace = () => {
         ))}
       </div>
 
-      {filteredProducts.length === 0 && (
+      {!isLoading && !error && filteredProducts.length === 0 && (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <p className="text-gray-500">No products found matching your criteria.</p>
         </div>

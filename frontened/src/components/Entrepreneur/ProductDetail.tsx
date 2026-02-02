@@ -3,6 +3,7 @@ import { ArrowLeft, Star, ShoppingCart, Package, Download, Shield, X, MessageCir
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { useAuth } from '../../context/AuthContext';
 
 interface Product {
   id: string;
@@ -31,6 +32,7 @@ interface PaymentModal {
 export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   const { addNotification } = useNotifications();
   const { openChatWithContact } = useChat();
+  const { user } = useAuth();
   const [paymentModal, setPaymentModal] = useState<PaymentModal>({ isOpen: false });
   const [quantity, setQuantity] = useState(1);
   const [orderSuccess, setOrderSuccess] = useState(false);
@@ -68,6 +70,8 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
         supplier: productData.supplier,
         quantity,
         price: productData.price,
+        entrepreneurName: user?.name || 'Entrepreneur',
+        entrepreneurEmail: user?.email || '',
       });
 
       addNotification({

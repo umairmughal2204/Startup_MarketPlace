@@ -1,25 +1,63 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Package, DollarSign, ShoppingBag, TrendingUp } from 'lucide-react';
+import { supplierApi } from '../../api/supplierApi';
 
 export const SupplierHome = () => {
-  const stats = [
-    { label: 'Total Products', value: '24', icon: <Package className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-    { label: 'Active Orders', value: '18', icon: <ShoppingBag className="w-6 h-6" />, color: 'bg-[#0088cc]' },
-    { label: 'Monthly Revenue', value: '$12,450', icon: <DollarSign className="w-6 h-6" />, color: 'bg-[#0099dd]' },
-    { label: 'Growth Rate', value: '+23%', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
-  ];
+  const [products, setProducts] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const recentOrders = [
-    { id: 'ORD-001', entrepreneur: 'John Doe', product: 'Cloud Hosting Package', quantity: 1, amount: 299, status: 'Processing' },
-    { id: 'ORD-002', entrepreneur: 'Sarah Smith', product: 'Logo Design Service', quantity: 2, amount: 998, status: 'Shipped' },
-    { id: 'ORD-003', entrepreneur: 'Mike Johnson', product: 'SEO Package', quantity: 1, amount: 899, status: 'Pending' },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    Promise.all([supplierApi.getProducts(), supplierApi.getOrders()])
+      .then(([productData, orderData]) => {
+        if (isMounted) {
+          setProducts(productData);
+          setOrders(orderData);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setError('Failed to load dashboard data');
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
-  const topProducts = [
-    { name: 'Cloud Hosting Package', sales: 45, revenue: '$13,455' },
-    { name: 'Logo Design Service', sales: 32, revenue: '$15,968' },
-    { name: 'SEO Optimization Package', sales: 28, revenue: '$25,172' },
-  ];
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalProducts = products.length;
+    const activeOrders = orders.filter((o: any) => o.status !== 'Delivered').length;
+    const revenue = orders.reduce((sum: number, o: any) => sum + (o.price * o.quantity), 0);
+    return [
+      { label: 'Total Products', value: String(totalProducts), icon: <Package className="w-6 h-6" />, color: 'bg-[#0066cc]' },
+      { label: 'Active Orders', value: String(activeOrders), icon: <ShoppingBag className="w-6 h-6" />, color: 'bg-[#0088cc]' },
+      { label: 'Total Revenue', value: `$${revenue.toFixed(2)}`, icon: <DollarSign className="w-6 h-6" />, color: 'bg-[#0099dd]' },
+      { label: 'Growth Rate', value: '+0%', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
+    ];
+  }, [products, orders]);
+
+  const recentOrders = orders.slice(0, 5);
+
+  const topProducts = useMemo(() => {
+    const totals: Record<string, { sales: number; revenue: number }> = {};
+    orders.forEach((o: any) => {
+      if (!totals[o.productName]) {
+        totals[o.productName] = { sales: 0, revenue: 0 };
+      }
+      totals[o.productName].sales += o.quantity;
+      totals[o.productName].revenue += o.price * o.quantity;
+    });
+    return Object.entries(totals)
+      .map(([name, data]) => ({ name, sales: data.sales, revenue: `$${data.revenue.toFixed(2)}` }))
+      .slice(0, 5);
+  }, [orders]);
 
   return (
     <div className="space-y-8">
@@ -60,14 +98,35 @@ export const SupplierHome = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {recentOrders.map((order) => (
+                {isLoading && (
+                  <tr>
+                    <td className="px-6 py-4 text-sm text-gray-500" colSpan={3}>
+                      Loading orders...
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && error && (
+                  <tr>
+                    <td className="px-6 py-4 text-sm text-red-600" colSpan={3}>
+                      {error}
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && !error && recentOrders.length === 0 && (
+                  <tr>
+                    <td className="px-6 py-4 text-sm text-gray-500" colSpan={3}>
+                      No orders yet.
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && !error && recentOrders.map((order: any) => (
                   <tr key={order.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">{order.id}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{order.entrepreneur}</div>
-                      <div className="text-xs text-gray-500">{order.product}</div>
+                      <div className="text-sm text-gray-900">{order.entrepreneurName || 'Entrepreneur'}</div>
+                      <div className="text-xs text-gray-500">{order.productName}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -76,6 +135,8 @@ export const SupplierHome = () => {
                             ? 'bg-blue-50 text-[#0088cc]'
                             : order.status === 'Processing'
                             ? 'bg-blue-100 text-[#0066cc]'
+                            : order.status === 'Delivered'
+                            ? 'bg-blue-50 text-[#00aaee]'
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
@@ -95,7 +156,11 @@ export const SupplierHome = () => {
             <h2 className="text-xl font-bold">Top Products</h2>
           </div>
           <div className="p-6 space-y-4">
-            {topProducts.map((product, index) => (
+            {isLoading && <div className="text-sm text-gray-500">Loading top products...</div>}
+            {!isLoading && !error && topProducts.length === 0 && (
+              <div className="text-sm text-gray-500">No product sales yet.</div>
+            )}
+            {!isLoading && !error && topProducts.map((product, index) => (
               <div key={index} className="flex items-center justify-between pb-4 border-b border-gray-100 last:border-0">
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900">{product.name}</div>

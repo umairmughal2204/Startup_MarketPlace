@@ -1,65 +1,63 @@
-import React, { useState } from 'react';
-import { Package, Clock, CheckCircle, Search, Download } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Package, Clock, CheckCircle, Search, Truck } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { supplierApi } from '../../api/supplierApi';
 
 interface Order {
   id: string;
-  entrepreneurName: string;
-  entrepreneurEmail: string;
-  product: string;
-  totalAmount: number;
-  status: 'Pending' | 'Processing' | 'Completed';
-  orderDate: Date;
+  entrepreneurName?: string;
+  entrepreneurEmail?: string;
+  productName: string;
+  supplier: string;
+  quantity: number;
+  price: number;
+  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered';
+  orderDate: string;
+  estimatedDelivery: string;
 }
 
 export const OrderManagement = () => {
   const { addNotification } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState<Order[]>([
-    {
-      id: 'ORD-001',
-      entrepreneurName: 'John Doe',
-      entrepreneurEmail: 'john@example.com',
-      product: 'Project Management Pro',
-      totalAmount: 49,
-      status: 'Processing',
-      orderDate: new Date('2026-01-10'),
-    },
-    {
-      id: 'ORD-002',
-      entrepreneurName: 'Sarah Smith',
-      entrepreneurEmail: 'sarah@example.com',
-      product: 'CRM Suite Enterprise',
-      totalAmount: 99,
-      status: 'Completed',
-      orderDate: new Date('2026-01-12'),
-    },
-    {
-      id: 'ORD-003',
-      entrepreneurName: 'Mike Johnson',
-      entrepreneurEmail: 'mike@example.com',
-      product: 'Analytics Dashboard',
-      totalAmount: 89,
-      status: 'Pending',
-      orderDate: new Date('2026-01-14'),
-    },
-    {
-      id: 'ORD-004',
-      entrepreneurName: 'Emily Chen',
-      entrepreneurEmail: 'emily@example.com',
-      product: 'Code Editor Ultimate',
-      totalAmount: 79,
-      status: 'Completed',
-      orderDate: new Date('2026-01-08'),
-    },
-  ]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId ? { ...order, status: newStatus } : order
-      )
-    );
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    supplierApi
+      .getOrders()
+      .then((data) => {
+        if (isMounted) {
+          setOrders(data);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('Failed to load orders');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      const updated = await supplierApi.updateOrderStatus(orderId, newStatus);
+      setOrders(orders.map((order) => (order.id === orderId ? updated : order)));
+    } catch (e) {
+      alert('Failed to update order status. Please try again.');
+      return;
+    }
 
     const order = orders.find((o) => o.id === orderId);
     if (order) {
@@ -74,14 +72,15 @@ export const OrderManagement = () => {
   const filteredOrders = orders.filter(
     (order) =>
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.entrepreneurName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.product.toLowerCase().includes(searchTerm.toLowerCase())
+      (order.entrepreneurName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.productName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const statusCounts = {
     Pending: orders.filter((o) => o.status === 'Pending').length,
     Processing: orders.filter((o) => o.status === 'Processing').length,
-    Completed: orders.filter((o) => o.status === 'Completed').length,
+    Shipped: orders.filter((o) => o.status === 'Shipped').length,
+    Delivered: orders.filter((o) => o.status === 'Delivered').length,
   };
 
   const getStatusIcon = (status: string) => {
@@ -90,8 +89,10 @@ export const OrderManagement = () => {
         return <Clock className="w-5 h-5 text-gray-500" />;
       case 'Processing':
         return <Package className="w-5 h-5 text-[#0066cc]" />;
-      case 'Completed':
-        return <CheckCircle className="w-5 h-5 text-[#0088cc]" />;
+      case 'Shipped':
+        return <Truck className="w-5 h-5 text-[#0088dd]" />;
+      case 'Delivered':
+        return <CheckCircle className="w-5 h-5 text-[#00aaee]" />;
       default:
         return null;
     }
@@ -103,8 +104,10 @@ export const OrderManagement = () => {
         return 'bg-gray-100 text-gray-800';
       case 'Processing':
         return 'bg-blue-100 text-[#0066cc]';
-      case 'Completed':
-        return 'bg-blue-50 text-[#0088cc]';
+      case 'Shipped':
+        return 'bg-blue-50 text-[#0088dd]';
+      case 'Delivered':
+        return 'bg-blue-50 text-[#00aaee]';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -133,12 +136,21 @@ export const OrderManagement = () => {
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#0088cc] mb-1">
-            {statusCounts.Completed}
+          <div className="text-3xl font-bold text-[#0088dd] mb-1">
+            {statusCounts.Shipped}
+          </div>
+          <div className="text-sm text-gray-600 flex items-center gap-2">
+            <Truck className="w-4 h-4" />
+            Shipped
+          </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="text-3xl font-bold text-[#00aaee] mb-1">
+            {statusCounts.Delivered}
           </div>
           <div className="text-sm text-gray-600 flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
-            Completed
+            Delivered
           </div>
         </div>
       </div>
@@ -184,25 +196,51 @@ export const OrderManagement = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
+              {isLoading && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                    Loading orders...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && error && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-red-600" colSpan={6}>
+                    {error}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && filteredOrders.length === 0 && (
+                <tr>
+                  <td className="px-6 py-4 text-sm text-gray-500" colSpan={6}>
+                    No orders found matching your search.
+                  </td>
+                </tr>
+              )}
+              {!isLoading && !error && filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{order.id}</div>
                     <div className="text-sm text-gray-500">
-                      {order.orderDate.toLocaleDateString()}
+                      {new Date(order.orderDate).toLocaleDateString()}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{order.entrepreneurName}</div>
-                    <div className="text-sm text-gray-500">{order.entrepreneurEmail}</div>
+                    <div className="font-medium text-gray-900">
+                      {order.entrepreneurName || 'Entrepreneur'}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {order.entrepreneurEmail || 'N/A'}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{order.product}</div>
+                    <div className="text-sm text-gray-900">{order.productName}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-semibold text-gray-900">
-                      ${order.totalAmount.toFixed(2)}
+                      ${(order.price * order.quantity).toFixed(2)}
                     </div>
+                    <div className="text-xs text-gray-500">Qty: {order.quantity}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -224,7 +262,8 @@ export const OrderManagement = () => {
                     >
                       <option value="Pending">Pending</option>
                       <option value="Processing">Processing</option>
-                      <option value="Completed">Completed</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Delivered">Delivered</option>
                     </select>
                   </td>
                 </tr>
@@ -233,12 +272,6 @@ export const OrderManagement = () => {
           </table>
         </div>
       </div>
-
-      {filteredOrders.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <p className="text-gray-500">No orders found matching your search.</p>
-        </div>
-      )}
     </div>
   );
 };

@@ -193,7 +193,7 @@ router.get("/orders/:id", async (req, res) => {
 
 router.post("/orders", async (req, res) => {
   try {
-    const { productName, supplier, quantity, price } = req.body || {};
+    const { productName, supplier, quantity, price, entrepreneurName, entrepreneurEmail } = req.body || {};
     if (!productName || !supplier || !quantity || !price) {
       return res
         .status(400)
@@ -208,6 +208,8 @@ router.post("/orders", async (req, res) => {
     const newOrder = await Order.create({
       productName,
       supplier,
+      entrepreneurName: entrepreneurName || "",
+      entrepreneurEmail: entrepreneurEmail || "",
       quantity,
       price,
       status: "Pending",

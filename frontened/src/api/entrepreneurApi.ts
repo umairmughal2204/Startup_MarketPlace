@@ -59,6 +59,8 @@ export const entrepreneurApi = {
     supplier: string;
     quantity: number;
     price: number;
+    entrepreneurName?: string;
+    entrepreneurEmail?: string;
   }) {
     const res = await fetch(`${API_BASE}/api/entrepreneur/orders`, {
       method: "POST",

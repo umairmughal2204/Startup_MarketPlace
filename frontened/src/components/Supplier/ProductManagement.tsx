@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Plus, Edit, Trash2, Upload, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Plus, Edit, Trash2, X } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { supplierApi } from '../../api/supplierApi';
+import { useAuth } from '../../context/AuthContext';
 
 interface Product {
   id: string;
@@ -9,43 +11,22 @@ interface Product {
   price: number;
   category: string;
   image: string;
+  imageUrl?: string;
+  imageName?: string;
   features: string[];
 }
 
 export const ProductManagement = () => {
   const { addNotification } = useNotifications();
+  const { user } = useAuth();
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: '1',
-      name: 'Project Management Pro',
-      description: 'Complete project management software for teams',
-      price: 49,
-      category: 'Productivity',
-      image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400',
-      features: ['Task Management', 'Team Collaboration', 'Time Tracking'],
-    },
-    {
-      id: '2',
-      name: 'CRM Suite Enterprise',
-      description: 'Advanced customer relationship management system',
-      price: 99,
-      category: 'Business',
-      image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400',
-      features: ['Contact Management', 'Sales Pipeline', 'Email Integration'],
-    },
-    {
-      id: '3',
-      name: 'Analytics Dashboard',
-      description: 'Real-time business analytics and reporting',
-      price: 89,
-      category: 'Analytics',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400',
-      features: ['Custom Dashboards', 'Data Integration', 'Real-time Updates'],
-    },
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',
@@ -53,21 +34,64 @@ export const ProductManagement = () => {
     price: 0,
     category: '',
     image: '',
+    imageUrl: '',
+    imageName: '',
     features: [],
   });
 
-  const handleAddProduct = () => {
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    supplierApi
+      .getProducts()
+      .then((data) => {
+        if (isMounted) {
+          setProducts(data);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError('Failed to load products');
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.category) {
       alert('Please fill in all required fields');
       return;
     }
 
-    const product: Product = {
-      ...newProduct,
-      id: Date.now().toString(),
-    };
+    const confirmCreate = window.confirm('Create this product?');
+    if (!confirmCreate) return;
 
-    setProducts([...products, product]);
+    try {
+      const product = await supplierApi.createProduct({
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        category: newProduct.category,
+        image: newProduct.image,
+        features: newProduct.features,
+        imageFile,
+        supplierName: user?.professionalDetails?.businessName || user?.name || '',
+      });
+
+      setProducts([product, ...products]);
+    } catch (e) {
+      alert('Failed to create product. Please try again.');
+      return;
+    }
     setShowModal(false);
     setNewProduct({
       name: '',
@@ -75,8 +99,11 @@ export const ProductManagement = () => {
       price: 0,
       category: '',
       image: '',
+      imageUrl: '',
+      imageName: '',
       features: [],
     });
+    setImageFile(null);
 
     addNotification({
       type: 'general',
@@ -85,15 +112,20 @@ export const ProductManagement = () => {
     });
   };
 
-  const handleDeleteProduct = (id: string) => {
-    if (confirm('Are you sure you want to delete this product?')) {
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await supplierApi.deleteProduct(id);
       setProducts(products.filter((p) => p.id !== id));
-      addNotification({
-        type: 'general',
-        title: 'Product Deleted',
-        message: 'The product has been removed from your catalog',
-      });
+    } catch (e) {
+      alert('Failed to delete product. Please try again.');
+      return;
     }
+    addNotification({
+      type: 'general',
+      title: 'Product Deleted',
+      message: 'The product has been removed from your catalog',
+    });
   };
 
   const handleEditProduct = (product: Product) => {
@@ -103,28 +135,37 @@ export const ProductManagement = () => {
       description: product.description,
       price: product.price,
       category: product.category,
-      image: product.image,
+      image: product.image || '',
+      imageUrl: product.imageUrl || '',
+      imageName: product.imageName || '',
       features: product.features,
     });
+    setImageFile(null);
     setShowEditModal(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingProduct) return;
+    const confirmUpdate = window.confirm('Update this product?');
+    if (!confirmUpdate) return;
 
-    const updatedProduct: Product = {
-      ...editingProduct,
-      name: newProduct.name,
-      description: newProduct.description,
-      price: newProduct.price,
-      category: newProduct.category,
-      image: newProduct.image,
-      features: newProduct.features,
-    };
+    try {
+      const updatedProduct: Product = await supplierApi.updateProduct(editingProduct.id, {
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        category: newProduct.category,
+        image: newProduct.image,
+        imageFile,
+        features: newProduct.features,
+        supplierName: user?.professionalDetails?.businessName || user?.name || '',
+      });
 
-    setProducts(
-      products.map((p) => (p.id === editingProduct.id ? updatedProduct : p))
-    );
+      setProducts(products.map((p) => (p.id === editingProduct.id ? updatedProduct : p)));
+    } catch (e) {
+      alert('Failed to update product. Please try again.');
+      return;
+    }
     setShowEditModal(false);
     setEditingProduct(null);
     setNewProduct({
@@ -133,8 +174,11 @@ export const ProductManagement = () => {
       price: 0,
       category: '',
       image: '',
+      imageUrl: '',
+      imageName: '',
       features: [],
     });
+    setImageFile(null);
 
     addNotification({
       type: 'general',
@@ -162,10 +206,19 @@ export const ProductManagement = () => {
 
       {/* Products Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product) => (
+        {isLoading && (
+          <div className="bg-white rounded-lg shadow p-6 text-gray-500">Loading products...</div>
+        )}
+        {!isLoading && error && (
+          <div className="bg-white rounded-lg shadow p-6 text-red-600">{error}</div>
+        )}
+        {!isLoading && !error && products.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-6 text-gray-500">No products yet.</div>
+        )}
+        {!isLoading && !error && products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden">
             <img
-              src={product.image}
+              src={product.imageUrl ? `${API_BASE}${product.imageUrl}` : (product.image || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400')}
               alt={product.name}
               className="w-full h-48 object-cover"
             />
@@ -279,15 +332,33 @@ export const ProductManagement = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Image URL
+                  Product Image (Upload)
                 </label>
-                <input
-                  type="url"
-                  value={newProduct.image}
-                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                  {imageFile ? (
+                    <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <span className="text-sm text-gray-700 font-medium truncate">
+                        {imageFile.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setImageFile(null)}
+                        className="p-1 rounded-full hover:bg-gray-100 transition"
+                        aria-label="Remove selected image"
+                      >
+                        <X className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No image selected.</p>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                  />
+                </div>
               </div>
 
               <div>
@@ -305,7 +376,10 @@ export const ProductManagement = () => {
 
               <div className="flex gap-4 pt-4">
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setImageFile(null);
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >
                   Cancel
@@ -398,15 +472,38 @@ export const ProductManagement = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Image URL
+                  Product Image (Upload)
                 </label>
-                <input
-                  type="url"
-                  value={newProduct.image}
-                  onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                  {(newProduct.imageName || newProduct.imageUrl) && !imageFile && (
+                    <p className="text-sm text-gray-600">
+                      Current: <span className="font-medium">{newProduct.imageName || 'Uploaded image'}</span>
+                    </p>
+                  )}
+                  {imageFile ? (
+                    <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                      <span className="text-sm text-gray-700 font-medium truncate">
+                        {imageFile.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setImageFile(null)}
+                        className="p-1 rounded-full hover:bg-gray-100 transition"
+                        aria-label="Remove selected image"
+                      >
+                        <X className="w-4 h-4 text-gray-500" />
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No new image selected.</p>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                  />
+                </div>
               </div>
 
               <div>
@@ -424,7 +521,10 @@ export const ProductManagement = () => {
 
               <div className="flex gap-4 pt-4">
                 <button
-                  onClick={() => setShowEditModal(false)}
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setImageFile(null);
+                  }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >
                   Cancel
