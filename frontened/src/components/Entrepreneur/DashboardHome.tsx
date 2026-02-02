@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp } from 'lucide-react';
+import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp, X, Target, CheckCircle, AlertCircle, FileText, Edit3, Trash2, Save } from 'lucide-react';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface IdeaItem {
   id: string;
   title: string;
+  category: string;
+  description: string;
+  documentName?: string | null;
+  documentUrl?: string | null;
   status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
   aiScore: number | null;
   feedbackCount: number;
@@ -14,8 +18,32 @@ export const DashboardHome = () => {
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedIdea, setSelectedIdea] = useState<IdeaItem | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '',
+    category: '',
+    description: '',
+    status: 'Under Review',
+    file: null as File | null,
+  });
 
-  useEffect(() => {
+  const categories = [
+    'Technology',
+    'Healthcare',
+    'Education',
+    'E-commerce',
+    'Finance',
+    'Sustainability',
+    'Entertainment',
+    'Other',
+  ];
+
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+
+  const loadIdeas = (selectedId?: string | null) => {
     let isMounted = true;
     setIsLoading(true);
     entrepreneurApi
@@ -23,6 +51,9 @@ export const DashboardHome = () => {
       .then((data) => {
         if (isMounted) {
           setIdeas(data);
+          if (selectedId) {
+            setSelectedIdea(data.find((idea: IdeaItem) => idea.id === selectedId) || null);
+          }
           setError(null);
         }
       })
@@ -39,6 +70,13 @@ export const DashboardHome = () => {
 
     return () => {
       isMounted = false;
+    };
+  };
+
+  useEffect(() => {
+    const cleanup = loadIdeas();
+    return () => {
+      if (cleanup) cleanup();
     };
   }, []);
 
@@ -60,10 +98,74 @@ export const DashboardHome = () => {
   const recentIdeas = ideas.slice(0, 5).map((idea) => ({
     id: idea.id,
     title: idea.title,
+    category: idea.category,
+    description: idea.description,
+    documentName: idea.documentName,
+    documentUrl: idea.documentUrl,
     status: idea.status,
-    score: idea.aiScore ? `${idea.aiScore}/10` : 'N/A',
+    aiScore: idea.aiScore,
+    score: idea.aiScore !== null && idea.aiScore !== undefined ? `${idea.aiScore}/10` : 'Analyzing...',
     feedback: idea.feedbackCount || 0,
   }));
+
+  const openIdea = (ideaId: string) => {
+    const idea = ideas.find((i) => i.id === ideaId) || null;
+    setSelectedIdea(idea);
+    setIsEditing(false);
+  };
+
+  const startEditing = () => {
+    if (!selectedIdea) return;
+    setEditForm({
+      title: selectedIdea.title,
+      category: selectedIdea.category,
+      description: selectedIdea.description,
+      status: selectedIdea.status,
+      file: null,
+    });
+    setIsEditing(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedIdea) return;
+    const confirmUpdate = window.confirm("Update this idea with the new changes?");
+    if (!confirmUpdate) return;
+    setIsSaving(true);
+    try {
+      const updated = await entrepreneurApi.updateIdea(selectedIdea.id, {
+        title: editForm.title,
+        category: editForm.category,
+        description: editForm.description,
+        status: editForm.status,
+        file: editForm.file,
+      });
+      setIdeas((prev) => prev.map((idea) => (idea.id === updated.id ? updated : idea)));
+      setSelectedIdea(updated);
+      setIsEditing(false);
+      setEditForm({ ...editForm, file: null });
+    } catch (err) {
+      setError('Failed to update idea');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedIdea) return;
+    const confirmDelete = window.confirm("Delete this idea? This action cannot be undone.");
+    if (!confirmDelete) return;
+    setIsDeleting(true);
+    try {
+      await entrepreneurApi.deleteIdea(selectedIdea.id);
+      setIdeas((prev) => prev.filter((idea) => idea.id !== selectedIdea.id));
+      setSelectedIdea(null);
+      setIsEditing(false);
+    } catch (err) {
+      setError('Failed to delete idea');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -128,9 +230,13 @@ export const DashboardHome = () => {
                 </tr>
               )}
               {!isLoading && !error && recentIdeas.map((idea) => (
-                <tr key={idea.id} className="hover:bg-gray-50">
+                <tr 
+                  key={idea.id} 
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => openIdea(idea.id)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900">{idea.title}</div>
+                    <div className="font-medium text-gray-900 hover:text-[#0066cc]">{idea.title}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -178,6 +284,252 @@ export const DashboardHome = () => {
           </button>
         </div>
       </div>
+
+      {/* Idea Detail Popup Modal */}
+      {selectedIdea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">{selectedIdea.title}</h2>
+              <button
+                onClick={() => setSelectedIdea(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <X className="w-6 h-6 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Status and Category */}
+              <div className="flex flex-wrap gap-3">
+                <span
+                  className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                    selectedIdea.status === 'Approved'
+                      ? 'bg-green-100 text-green-700'
+                      : selectedIdea.status === 'Under Review'
+                      ? 'bg-blue-100 text-blue-700'
+                      : selectedIdea.status === 'Rejected'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {selectedIdea.status === 'Approved' && <CheckCircle className="w-4 h-4 inline mr-1" />}
+                  {selectedIdea.status === 'Rejected' && <AlertCircle className="w-4 h-4 inline mr-1" />}
+                  {selectedIdea.status}
+                </span>
+                <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">
+                  {selectedIdea.category || 'Uncategorized'}
+                </span>
+              </div>
+
+              {/* AI Score Section */}
+              <div className="bg-gradient-to-br from-[#0066cc] to-[#0088dd] rounded-xl p-6 text-white">
+                <div className="flex items-center gap-3 mb-4">
+                  <Target className="w-8 h-8" />
+                  <h3 className="text-xl font-bold">AI Analysis Score</h3>
+                </div>
+                <div className="flex items-end gap-2">
+                  <span className="text-5xl font-bold">
+                    {selectedIdea.aiScore !== null && selectedIdea.aiScore !== undefined 
+                      ? selectedIdea.aiScore.toFixed(1) 
+                      : 'N/A'}
+                  </span>
+                  <span className="text-2xl mb-1 opacity-80">/10</span>
+                </div>
+                {selectedIdea.aiScore !== null && selectedIdea.aiScore !== undefined && (
+                  <div className="mt-4">
+                    <div className="w-full bg-white/30 rounded-full h-3">
+                      <div 
+                        className="bg-white rounded-full h-3 transition-all duration-500"
+                        style={{ width: `${(selectedIdea.aiScore / 10) * 100}%` }}
+                      />
+                    </div>
+                    <p className="mt-2 text-sm opacity-90">
+                      {selectedIdea.aiScore >= 8 ? 'Excellent potential! This idea shows strong market viability.' :
+                       selectedIdea.aiScore >= 6 ? 'Good potential with room for improvement.' :
+                       selectedIdea.aiScore >= 4 ? 'Moderate potential. Consider refining your concept.' :
+                       'Needs significant improvement. Review the feedback and iterate.'}
+                    </p>
+                  </div>
+                )}
+                {(selectedIdea.aiScore === null || selectedIdea.aiScore === undefined) && (
+                  <p className="mt-2 text-sm opacity-90">
+                    AI analysis is being processed. Please check back later.
+                  </p>
+                )}
+              </div>
+
+              {/* Document */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <FileText className="w-5 h-5 text-[#0066cc]" />
+                  <h4 className="text-lg font-semibold text-gray-900">Document</h4>
+                </div>
+                {selectedIdea.documentUrl ? (
+                  <a
+                    href={`${API_BASE}${selectedIdea.documentUrl}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#0066cc] hover:underline font-medium"
+                  >
+                    {selectedIdea.documentName || 'View Document'}
+                  </a>
+                ) : (
+                  <p className="text-gray-600">No document uploaded.</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Description</h4>
+                {!isEditing ? (
+                  <p className="text-gray-600 leading-relaxed">
+                    {selectedIdea.description || 'No description provided.'}
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                      <input
+                        type="text"
+                        value={editForm.title}
+                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+                      <select
+                        value={editForm.category}
+                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                      <select
+                        value={editForm.status}
+                        onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                      <textarea
+                        value={editForm.description}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                        rows={4}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Document</label>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        {selectedIdea.documentName && (
+                          <p className="text-sm text-gray-600">
+                            Current: <span className="font-medium">{selectedIdea.documentName}</span>
+                          </p>
+                        )}
+                        {editForm.file ? (
+                          <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
+                            <span className="text-sm text-gray-700 font-medium truncate">
+                              {editForm.file.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setEditForm({ ...editForm, file: null })}
+                              className="p-1 rounded-full hover:bg-gray-100 transition"
+                              aria-label="Remove selected file"
+                            >
+                              <X className="w-4 h-4 text-gray-500" />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No new file selected.</p>
+                        )}
+                        <input
+                          type="file"
+                          accept=".pdf,.docx"
+                          onChange={(e) => setEditForm({ ...editForm, file: e.target.files?.[0] || null })}
+                          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Feedback Count */}
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                <MessageSquare className="w-6 h-6 text-[#0066cc]" />
+                <div>
+                  <span className="text-2xl font-bold text-gray-900">{selectedIdea.feedbackCount || 0}</span>
+                  <span className="text-gray-600 ml-2">Investor Feedback{selectedIdea.feedbackCount !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 flex flex-wrap justify-end gap-3">
+              {!isEditing ? (
+                <>
+                  <button
+                    onClick={startEditing}
+                    className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Update
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="px-6 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-60"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleUpdate}
+                    disabled={isSaving}
+                    className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition flex items-center gap-2 disabled:opacity-60"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setSelectedIdea(null)}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

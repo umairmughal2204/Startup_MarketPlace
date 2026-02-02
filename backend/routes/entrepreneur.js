@@ -1,8 +1,35 @@
 const express = require("express");
+const path = require("path");
+const multer = require("multer");
 const Idea = require("../models/Idea");
 const Order = require("../models/Order");
 
 const router = express.Router();
+
+const uploadsDir = path.join(__dirname, "..", "uploads");
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const safeName = file.originalname.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]/g, "");
+    cb(null, `${Date.now()}-${safeName}`);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only PDF and DOCX files are allowed"));
+  }
+};
+
+const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
 const toIdeaResponse = (doc) => {
   const data = doc.toObject ? doc.toObject() : doc;
@@ -38,7 +65,36 @@ router.get("/ideas/:id", async (req, res) => {
   }
 });
 
-router.post("/ideas", async (req, res) => {
+// Helper function to generate AI score based on idea content
+const generateAIScore = (title, description) => {
+  // Simulate AI scoring based on content quality indicators
+  let score = 5.0; // Base score
+  
+  // Title quality factors
+  if (title.length > 10) score += 0.5;
+  if (title.length > 20) score += 0.5;
+  
+  // Description quality factors
+  if (description.length > 50) score += 0.5;
+  if (description.length > 100) score += 0.5;
+  if (description.length > 200) score += 0.5;
+  if (description.length > 500) score += 0.5;
+  
+  // Check for key business terms
+  const businessTerms = ['market', 'customer', 'revenue', 'growth', 'solution', 'problem', 'target', 'value', 'innovation', 'scalable'];
+  const descLower = description.toLowerCase();
+  businessTerms.forEach(term => {
+    if (descLower.includes(term)) score += 0.2;
+  });
+  
+  // Add some randomness for variation (0 to 1)
+  score += Math.random();
+  
+  // Cap between 1 and 10
+  return Math.min(10, Math.max(1, parseFloat(score.toFixed(1))));
+};
+
+router.post("/ideas", upload.single("document"), async (req, res) => {
   try {
     const { title, category, description } = req.body || {};
     if (!title || !category || !description) {
@@ -47,12 +103,20 @@ router.post("/ideas", async (req, res) => {
         .json({ message: "title, category, and description are required" });
     }
 
+    // Generate AI score based on idea content
+    const aiScore = generateAIScore(title, description);
+
+    const documentName = req.file ? req.file.originalname : null;
+    const documentUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
     const newIdea = await Idea.create({
       title,
       category,
       description,
       status: "Under Review",
-      aiScore: null,
+      aiScore,
+      documentName,
+      documentUrl,
       feedbackCount: 0,
     });
 
@@ -62,7 +126,7 @@ router.post("/ideas", async (req, res) => {
   }
 });
 
-router.put("/ideas/:id", async (req, res) => {
+router.put("/ideas/:id", upload.single("document"), async (req, res) => {
   try {
     const updates = {};
     const { title, category, description, status, aiScore, feedbackCount } = req.body || {};
@@ -73,6 +137,10 @@ router.put("/ideas/:id", async (req, res) => {
     if (status !== undefined) updates.status = status;
     if (aiScore !== undefined) updates.aiScore = aiScore;
     if (feedbackCount !== undefined) updates.feedbackCount = feedbackCount;
+    if (req.file) {
+      updates.documentName = req.file.originalname;
+      updates.documentUrl = `/uploads/${req.file.filename}`;
+    }
 
     const idea = await Idea.findByIdAndUpdate(req.params.id, updates, {
       new: true,

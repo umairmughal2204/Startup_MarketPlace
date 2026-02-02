@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target, X } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 
@@ -60,12 +60,15 @@ export const SubmitIdea = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const confirmCreate = window.confirm('Submit this idea?');
+    if (!confirmCreate) return;
     setIsSubmitting(true);
     try {
       await entrepreneurApi.createIdea({
         title: formData.title,
         category: formData.category,
         description: formData.description,
+        file: formData.file,
       });
 
       const mockAIFeedback: AIFeedback = {
@@ -185,11 +188,32 @@ export const SubmitIdea = () => {
                 >
                   {formData.file ? (
                     <>
-                      <FileText className="w-12 h-12 text-[#0066cc] mb-2" />
-                      <p className="text-sm font-medium text-gray-900">{formData.file.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {(formData.file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                      <div className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 mb-3">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-8 h-8 text-[#0066cc]" />
+                          <div className="text-left">
+                            <p className="text-sm font-medium text-gray-900 truncate max-w-[220px]">
+                              {formData.file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(formData.file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setFormData({ ...formData, file: null });
+                          }}
+                          className="p-1 rounded-full hover:bg-gray-100 transition"
+                          aria-label="Remove selected file"
+                        >
+                          <X className="w-4 h-4 text-gray-500" />
+                        </button>
+                      </div>
+                      <p className="text-sm font-medium text-gray-700">Click to replace PDF or DOCX</p>
+                      <p className="text-xs text-gray-500">Maximum file size: 10MB</p>
                     </>
                   ) : (
                     <>
