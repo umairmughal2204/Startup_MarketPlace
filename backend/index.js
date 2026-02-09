@@ -2,12 +2,16 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
 require("dotenv").config();
 const entrepreneurRoutes = require("./routes/entrepreneur");
 const supplierRoutes = require("./routes/supplier");
 const investorRoutes = require("./routes/investor");
+const chatRoutes = require("./routes/chat");
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 4000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -18,6 +22,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/entrepreneur", entrepreneurRoutes);
 app.use("/api/supplier", supplierRoutes);
 app.use("/api/investor", investorRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Simple health check route
 app.get("/", (req, res) => {
@@ -33,7 +38,37 @@ const startServer = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("MongoDB connected");
-    app.listen(PORT, () => {
+
+    const io = new Server(server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+      },
+    });
+
+    io.on("connection", (socket) => {
+      const user = socket.handshake.auth?.user;
+      if (user?.id && user?.role) {
+        socket.join(`user:${user.id}`);
+        socket.join(`role:${user.role}`);
+      }
+
+      socket.on("thread:join", (payload) => {
+        if (payload?.threadId) {
+          socket.join(`thread:${payload.threadId}`);
+        }
+      });
+
+      socket.on("thread:leave", (payload) => {
+        if (payload?.threadId) {
+          socket.leave(`thread:${payload.threadId}`);
+        }
+      });
+    });
+
+    app.set("io", io);
+
+    server.listen(PORT, () => {
       console.log(`Server listening on http://localhost:${PORT}`);
     });
   } catch (error) {

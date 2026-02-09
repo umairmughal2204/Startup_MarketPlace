@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LayoutDashboard, Lightbulb, Package, Users, BarChart3, Settings } from 'lucide-react';
 import { Sidebar } from '../shared/Sidebar';
 import { NotificationCenter } from '../shared/NotificationCenter';
+import { ChatWidget } from '../shared/ChatWidget';
 import { AdminHome } from './AdminHome';
 import { ReviewIdeas } from './ReviewIdeas';
 import { ReviewProducts } from './ReviewProducts';
@@ -68,6 +69,8 @@ export const AdminDashboard = ({ userName, onLogout }: AdminDashboardProps) => {
         {/* Content */}
         <div className="p-4 sm:p-6 lg:p-8">{renderPage()}</div>
       </div>
+
+      <ChatWidget currentUserRole="Admin" />
     </div>
   );
 };
