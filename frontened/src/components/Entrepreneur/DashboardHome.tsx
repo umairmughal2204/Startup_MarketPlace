@@ -14,7 +14,11 @@ interface IdeaItem {
   feedbackCount: number;
 }
 
-export const DashboardHome = () => {
+interface DashboardHomeProps {
+  onNavigate?: (pageId: string) => void;
+}
+
+export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -269,7 +273,10 @@ export const DashboardHome = () => {
           <p className="mb-4 text-blue-100">
             Have a brilliant startup concept? Submit it now and get AI-powered feedback instantly.
           </p>
-          <button className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+          <button
+            onClick={() => onNavigate?.('submit-idea')}
+            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+          >
             Get Started
           </button>
         </div>
@@ -279,7 +286,10 @@ export const DashboardHome = () => {
           <p className="mb-4 text-gray-600">
             Discover products and services from verified suppliers to bring your idea to life.
           </p>
-          <button className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition">
+          <button
+            onClick={() => onNavigate?.('market')}
+            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+          >
             Explore Products
           </button>
         </div>

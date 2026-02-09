@@ -24,7 +24,11 @@ interface FeedbackItem {
   createdAt?: string;
 }
 
-export const InvestorHome = () => {
+interface InvestorHomeProps {
+  onNavigate?: (pageId: string) => void;
+}
+
+export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,7 +188,10 @@ export const InvestorHome = () => {
           <p className="mb-4 text-blue-100">
             Browse the latest startup ideas and identify promising investment opportunities.
           </p>
-          <button className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+          <button
+            onClick={() => onNavigate?.('ideas')}
+            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+          >
             Browse Ideas
           </button>
         </div>
@@ -194,7 +201,10 @@ export const InvestorHome = () => {
           <p className="mb-4 text-gray-600">
             Provide valuable feedback to help entrepreneurs refine their concepts.
           </p>
-          <button className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition">
+          <button
+            onClick={() => onNavigate?.('feedback')}
+            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+          >
             View My Feedback
           </button>
         </div>

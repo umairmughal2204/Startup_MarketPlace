@@ -26,7 +26,7 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <SupplierHome />;
+        return <SupplierHome onNavigate={setCurrentPage} />;
       case 'products':
         return <ProductManagement />;
       case 'orders':
@@ -34,7 +34,7 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:
-        return <SupplierHome />;
+        return <SupplierHome onNavigate={setCurrentPage} />;
     }
   };
 

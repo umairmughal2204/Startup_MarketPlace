@@ -2,7 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Package, DollarSign, ShoppingBag, TrendingUp } from 'lucide-react';
 import { supplierApi } from '../../api/supplierApi';
 
-export const SupplierHome = () => {
+interface SupplierHomeProps {
+  onNavigate?: (pageId: string) => void;
+}
+
+export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -182,7 +186,10 @@ export const SupplierHome = () => {
           <p className="mb-4 text-blue-100">
             List a new product or service to expand your offerings to entrepreneurs.
           </p>
-          <button className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition">
+          <button
+            onClick={() => onNavigate?.('products')}
+            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+          >
             Add Product
           </button>
         </div>
@@ -192,7 +199,10 @@ export const SupplierHome = () => {
           <p className="mb-4 text-gray-600">
             Update order statuses and communicate with entrepreneurs about their purchases.
           </p>
-          <button className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition">
+          <button
+            onClick={() => onNavigate?.('orders')}
+            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+          >
             View Orders
           </button>
         </div>

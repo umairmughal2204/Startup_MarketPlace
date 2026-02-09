@@ -38,7 +38,7 @@ export const EntrepreneurDashboard = ({ userName, onLogout }: EntrepreneurDashbo
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <DashboardHome />;
+        return <DashboardHome onNavigate={setCurrentPage} />;
       case 'submit-idea':
         return <SubmitIdea />;
       case 'market':
@@ -48,7 +48,7 @@ export const EntrepreneurDashboard = ({ userName, onLogout }: EntrepreneurDashbo
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:
-        return <DashboardHome />;
+        return <DashboardHome onNavigate={setCurrentPage} />;
     }
   };
 

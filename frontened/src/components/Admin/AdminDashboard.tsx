@@ -29,7 +29,7 @@ export const AdminDashboard = ({ userName, onLogout }: AdminDashboardProps) => {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <AdminHome />;
+        return <AdminHome onNavigate={setCurrentPage} />;
       case 'ideas':
         return <ReviewIdeas />;
       case 'products':
@@ -41,7 +41,7 @@ export const AdminDashboard = ({ userName, onLogout }: AdminDashboardProps) => {
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:
-        return <AdminHome />;
+        return <AdminHome onNavigate={setCurrentPage} />;
     }
   };
 

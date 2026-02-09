@@ -26,7 +26,7 @@ export const InvestorDashboard = ({ userName, onLogout }: InvestorDashboardProps
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <InvestorHome />;
+        return <InvestorHome onNavigate={setCurrentPage} />;
       case 'ideas':
         return <IdeaBrowser />;
       case 'feedback':
@@ -34,7 +34,7 @@ export const InvestorDashboard = ({ userName, onLogout }: InvestorDashboardProps
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:
-        return <InvestorHome />;
+        return <InvestorHome onNavigate={setCurrentPage} />;
     }
   };
 

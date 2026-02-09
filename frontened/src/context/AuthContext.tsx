@@ -2,6 +2,13 @@ import React, { createContext, useContext, useEffect, useMemo, useState, ReactNo
 
 export type UserRole = 'Entrepreneur' | 'Supplier' | 'Investor' | 'Admin';
 
+export interface NotificationPreferences {
+  orderUpdates: boolean;
+  investorFeedback: boolean;
+  newMessages: boolean;
+  marketingEmails: boolean;
+}
+
 export interface ProfessionalDetails {
   // Entrepreneur fields
   companyName?: string;
@@ -31,6 +38,8 @@ export interface User {
   isVerified?: boolean;
   status?: 'Active' | 'Suspended';
   createdAt?: string;
+  phone?: string;
+  notificationPreferences?: NotificationPreferences;
   profileVisibility?: 'Public' | 'Private';
 }
 
@@ -46,6 +55,14 @@ interface AuthContextType {
   logout: () => void;
   approveUser: (userId: string, isVerified: boolean) => void;
   toggleUserStatus: (userId: string) => void;
+  updateProfile: (payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    profileVisibility?: 'Public' | 'Private';
+  }) => Promise<void>;
+  updatePassword: (currentPassword: string, nextPassword: string) => Promise<void>;
+  updateNotifications: (preferences: NotificationPreferences) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -156,8 +173,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (found.role === 'Admin') {
-      if (found.email.toLowerCase() !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
-        throw new Error('Invalid admin credentials');
+      if (found.email.toLowerCase() !== ADMIN_EMAIL) {
+        throw new Error('Invalid admin account');
       }
     }
 
@@ -206,6 +223,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     saveCurrentUser(null);
   };
 
+  const updateProfile = async (payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    profileVisibility?: 'Public' | 'Private';
+  }) => {
+    if (!user) throw new Error('Not authenticated');
+    const normalizedEmail = payload.email.trim().toLowerCase();
+    if (user.role === 'Admin' && normalizedEmail !== ADMIN_EMAIL) {
+      throw new Error('Admin email cannot be changed');
+    }
+    const emailTaken = storedUsers.some(
+      (u) => u.email.toLowerCase() === normalizedEmail && u.id !== user.id
+    );
+    if (emailTaken) {
+      throw new Error('Email already in use');
+    }
+
+    setStoredUsers((prev) =>
+      prev.map((u) =>
+        u.id === user.id
+          ? {
+              ...u,
+              name: payload.name,
+              email: normalizedEmail,
+              phone: payload.phone || '',
+              profileVisibility: payload.profileVisibility || 'Public',
+            }
+          : u
+      )
+    );
+
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: payload.name,
+            email: normalizedEmail,
+            phone: payload.phone || '',
+            profileVisibility: payload.profileVisibility || 'Public',
+          }
+        : prev
+    );
+  };
+
+  const updatePassword = async (currentPassword: string, nextPassword: string) => {
+    if (!user) throw new Error('Not authenticated');
+    const stored = storedUsers.find((u) => u.id === user.id);
+    if (!stored) throw new Error('Account not found');
+    if (stored.password !== currentPassword) {
+      throw new Error('Current password is incorrect');
+    }
+    setStoredUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, password: nextPassword } : u))
+    );
+  };
+
+  const updateNotifications = (preferences: NotificationPreferences) => {
+    if (!user) return;
+    setStoredUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, notificationPreferences: preferences } : u))
+    );
+    setUser((prev) => (prev ? { ...prev, notificationPreferences: preferences } : prev));
+  };
+
   const approveUser = (userId: string, isVerified: boolean) => {
     setStoredUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, isVerified } : u))
@@ -225,7 +307,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [storedUsers]);
 
   return (
-    <AuthContext.Provider value={{ user, users, login, register, logout, approveUser, toggleUserStatus }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        users,
+        login,
+        register,
+        logout,
+        approveUser,
+        toggleUserStatus,
+        updateProfile,
+        updatePassword,
+        updateNotifications,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

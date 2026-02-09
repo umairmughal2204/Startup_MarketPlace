@@ -15,14 +15,41 @@ function AppContent() {
   const { user, login, register, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const LAST_PATH_KEY = 'slm_last_path';
 
   useEffect(() => {
     if (!user) return;
     const target = user.role === 'Admin' ? '/admin' : `/${user.role.toLowerCase()}`;
+    const storedPath = typeof window !== 'undefined'
+      ? window.sessionStorage.getItem(LAST_PATH_KEY)
+      : null;
+
     if (location.pathname === '/' || location.pathname === '/auth') {
+      if (storedPath && storedPath.startsWith(target)) {
+        navigate(storedPath, { replace: true });
+        return;
+      }
+      navigate(target, { replace: true });
+      return;
+    }
+
+    if (!location.pathname.startsWith(target)) {
+      if (storedPath && storedPath.startsWith(target)) {
+        navigate(storedPath, { replace: true });
+        return;
+      }
       navigate(target, { replace: true });
     }
   }, [user, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window === 'undefined') return;
+    const target = user.role === 'Admin' ? '/admin' : `/${user.role.toLowerCase()}`;
+    if (location.pathname.startsWith(target)) {
+      window.sessionStorage.setItem(LAST_PATH_KEY, location.pathname);
+    }
+  }, [user, location.pathname]);
 
   const handleLogout = () => {
     logout();

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Users, Lightbulb, Package, TrendingUp } from 'lucide-react';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { supplierApi } from '../../api/supplierApi';
+import { useAuth } from '../../context/AuthContext';
 
 interface IdeaItem {
   id: string;
@@ -19,7 +20,12 @@ interface ProductItem {
   createdAt?: string;
 }
 
-export const AdminHome = () => {
+interface AdminHomeProps {
+  onNavigate?: (pageId: string) => void;
+}
+
+export const AdminHome = ({ onNavigate }: AdminHomeProps) => {
+  const { users } = useAuth();
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,14 +64,35 @@ export const AdminHome = () => {
     [products]
   );
 
+  const roleCounts = useMemo(() => {
+    return users.reduce(
+      (acc, user) => {
+        acc[user.role] = (acc[user.role] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+  }, [users]);
+
+  const approvedIdeas = useMemo(
+    () => ideas.filter((idea) => idea.status === 'Approved').length,
+    [ideas]
+  );
+
   const stats = useMemo(() => {
     return [
-      { label: 'Total Users', value: '1,247', icon: <Users className="w-6 h-6" />, color: 'bg-blue-500', change: '+12%' },
+      {
+        label: 'Total Users',
+        value: users.length.toLocaleString(),
+        icon: <Users className="w-6 h-6" />,
+        color: 'bg-blue-500',
+        change: `${roleCounts.Admin || 0} admins`,
+      },
       { label: 'Pending Ideas', value: String(pendingIdeas.length), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-yellow-500', change: `${pendingIdeas.length}` },
       { label: 'Pending Products', value: String(pendingProducts.length), icon: <Package className="w-6 h-6" />, color: 'bg-orange-500', change: `${pendingProducts.length}` },
-      { label: 'Active Orders', value: '156', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-green-500', change: '+18%' },
+      { label: 'Approved Ideas', value: String(approvedIdeas), icon: <TrendingUp className="w-6 h-6" />, color: 'bg-green-500', change: `${approvedIdeas}` },
     ];
-  }, [pendingIdeas.length, pendingProducts.length]);
+  }, [approvedIdeas, pendingIdeas.length, pendingProducts.length, roleCounts.Admin, users.length]);
 
   const pendingApprovals = useMemo(() => {
     const ideaItems = pendingIdeas.map((idea) => ({
@@ -147,7 +174,10 @@ export const AdminHome = () => {
                   </div>
                   <p className="text-sm text-gray-500">by {item.submitter}</p>
                 </div>
-                <button className="text-[#0066cc] hover:underline font-semibold text-sm">
+                <button
+                  onClick={() => onNavigate?.(item.type === 'Idea' ? 'ideas' : 'products')}
+                  className="text-[#0066cc] hover:underline font-semibold text-sm"
+                >
                   Review
                 </button>
               </div>
@@ -191,19 +221,19 @@ export const AdminHome = () => {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow p-6">
           <Users className="w-10 h-10 mb-3 opacity-80" />
-          <div className="text-3xl font-bold mb-1">423</div>
+          <div className="text-3xl font-bold mb-1">{roleCounts.Entrepreneur || 0}</div>
           <div className="text-blue-100">Entrepreneurs</div>
         </div>
 
         <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow p-6">
           <Package className="w-10 h-10 mb-3 opacity-80" />
-          <div className="text-3xl font-bold mb-1">87</div>
+          <div className="text-3xl font-bold mb-1">{roleCounts.Supplier || 0}</div>
           <div className="text-green-100">Suppliers</div>
         </div>
 
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow p-6">
           <TrendingUp className="w-10 h-10 mb-3 opacity-80" />
-          <div className="text-3xl font-bold mb-1">156</div>
+          <div className="text-3xl font-bold mb-1">{roleCounts.Investor || 0}</div>
           <div className="text-purple-100">Investors</div>
         </div>
       </div>
@@ -212,16 +242,28 @@ export const AdminHome = () => {
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
         <div className="grid md:grid-cols-4 gap-4">
-          <button className="p-4 border-2 border-[#0066cc] text-[#0066cc] rounded-lg hover:bg-[#0066cc] hover:text-white transition font-semibold">
+          <button
+            onClick={() => onNavigate?.('ideas')}
+            className="p-4 border-2 border-[#0066cc] text-[#0066cc] rounded-lg hover:bg-[#0066cc] hover:text-white transition font-semibold"
+          >
             Review Ideas
           </button>
-          <button className="p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition font-semibold">
+          <button
+            onClick={() => onNavigate?.('products')}
+            className="p-4 border-2 border-green-600 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition font-semibold"
+          >
             Approve Products
           </button>
-          <button className="p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition font-semibold">
+          <button
+            onClick={() => onNavigate?.('users')}
+            className="p-4 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-600 hover:text-white transition font-semibold"
+          >
             Manage Users
           </button>
-          <button className="p-4 border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-600 hover:text-white transition font-semibold">
+          <button
+            onClick={() => onNavigate?.('analytics')}
+            className="p-4 border-2 border-orange-600 text-orange-600 rounded-lg hover:bg-orange-600 hover:text-white transition font-semibold"
+          >
             View Analytics
           </button>
         </div>
