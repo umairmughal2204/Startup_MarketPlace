@@ -82,6 +82,7 @@ export const IdeaBrowser = () => {
   }, [ideas]);
 
   const filteredIdeas = ideas.filter((idea) => {
+    if (idea.status !== 'Approved') return false;
     const matchesSearch =
       idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       idea.description.toLowerCase().includes(searchTerm.toLowerCase());

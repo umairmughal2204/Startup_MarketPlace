@@ -55,10 +55,11 @@ export const InvestorHome = () => {
   }, []);
 
   const stats = useMemo(() => {
+    const approvedIdeas = ideas.filter((idea) => idea.status === 'Approved');
     const reviewed = feedback.length;
     const feedbackGiven = feedback.length;
-    const highPotential = ideas.filter((idea) => (idea.aiScore || 0) >= 8.5).length;
-    const categoryCount = new Set(ideas.map((idea) => idea.category).filter(Boolean)).size;
+    const highPotential = approvedIdeas.filter((idea) => (idea.aiScore || 0) >= 8.5).length;
+    const categoryCount = new Set(approvedIdeas.map((idea) => idea.category).filter(Boolean)).size;
     return [
       { label: 'Ideas Reviewed', value: String(reviewed), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
       { label: 'Feedback Given', value: String(feedbackGiven), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#0099dd]' },
@@ -68,7 +69,8 @@ export const InvestorHome = () => {
   }, [ideas, feedback]);
 
   const topIdeas = useMemo(() => {
-    return [...ideas]
+    return ideas
+      .filter((idea) => idea.status === 'Approved')
       .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
       .slice(0, 3);
   }, [ideas]);

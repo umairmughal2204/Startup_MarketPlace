@@ -1,26 +1,101 @@
-import React from 'react';
-import { Users, Lightbulb, Package, AlertCircle, TrendingUp, DollarSign } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Users, Lightbulb, Package, TrendingUp } from 'lucide-react';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { supplierApi } from '../../api/supplierApi';
+
+interface IdeaItem {
+  id: string;
+  title: string;
+  category: string;
+  status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
+  createdAt?: string;
+}
+
+interface ProductItem {
+  id: string;
+  name: string;
+  supplierName?: string;
+  status?: 'Pending' | 'Approved' | 'Rejected';
+  createdAt?: string;
+}
 
 export const AdminHome = () => {
-  const stats = [
-    { label: 'Total Users', value: '1,247', icon: <Users className="w-6 h-6" />, color: 'bg-blue-500', change: '+12%' },
-    { label: 'Pending Ideas', value: '23', icon: <Lightbulb className="w-6 h-6" />, color: 'bg-yellow-500', change: '+5' },
-    { label: 'Pending Products', value: '17', icon: <Package className="w-6 h-6" />, color: 'bg-orange-500', change: '+3' },
-    { label: 'Active Orders', value: '156', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-green-500', change: '+18%' },
-  ];
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const recentActivity = [
-    { action: 'New user registration', user: 'john.doe@example.com', role: 'Entrepreneur', time: '5 min ago' },
-    { action: 'Idea submitted for review', user: 'sarah.smith@example.com', role: 'Entrepreneur', time: '12 min ago' },
-    { action: 'Product listed for approval', user: 'TechSupply Co.', role: 'Supplier', time: '1 hour ago' },
-    { action: 'Feedback provided', user: 'mike.investor@example.com', role: 'Investor', time: '2 hours ago' },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    Promise.all([entrepreneurApi.getIdeas(), supplierApi.getProducts()])
+      .then(([ideaData, productData]) => {
+        if (!isMounted) return;
+        setIdeas(ideaData);
+        setProducts(productData);
+        setError(null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setError('Failed to load admin data');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsLoading(false);
+      });
 
-  const pendingApprovals = [
-    { type: 'Idea', title: 'AI-Powered Fitness App', submitter: 'John Doe', status: 'Pending Review' },
-    { type: 'Product', title: 'Cloud Hosting Package', submitter: 'TechSupply Co.', status: 'Pending Approval' },
-    { type: 'Idea', title: 'Sustainable Packaging', submitter: 'Sarah Smith', status: 'Pending Review' },
-  ];
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const pendingIdeas = useMemo(
+    () => ideas.filter((idea) => idea.status === 'Pending' || idea.status === 'Under Review'),
+    [ideas]
+  );
+  const pendingProducts = useMemo(
+    () => products.filter((product) => (product.status || 'Pending') === 'Pending'),
+    [products]
+  );
+
+  const stats = useMemo(() => {
+    return [
+      { label: 'Total Users', value: '1,247', icon: <Users className="w-6 h-6" />, color: 'bg-blue-500', change: '+12%' },
+      { label: 'Pending Ideas', value: String(pendingIdeas.length), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-yellow-500', change: `${pendingIdeas.length}` },
+      { label: 'Pending Products', value: String(pendingProducts.length), icon: <Package className="w-6 h-6" />, color: 'bg-orange-500', change: `${pendingProducts.length}` },
+      { label: 'Active Orders', value: '156', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-green-500', change: '+18%' },
+    ];
+  }, [pendingIdeas.length, pendingProducts.length]);
+
+  const pendingApprovals = useMemo(() => {
+    const ideaItems = pendingIdeas.map((idea) => ({
+      type: 'Idea',
+      title: idea.title,
+      submitter: 'Entrepreneur',
+      status: idea.status,
+      createdAt: idea.createdAt,
+    }));
+    const productItems = pendingProducts.map((product) => ({
+      type: 'Product',
+      title: product.name,
+      submitter: product.supplierName || 'Supplier',
+      status: product.status || 'Pending',
+      createdAt: product.createdAt,
+    }));
+
+    return [...ideaItems, ...productItems]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 5);
+  }, [pendingIdeas, pendingProducts]);
+
+  const recentActivity = useMemo(() => {
+    return pendingApprovals.map((item) => ({
+      action: item.type === 'Idea' ? 'Idea submitted for review' : 'Product listed for approval',
+      user: item.submitter,
+      role: item.type === 'Idea' ? 'Entrepreneur' : 'Supplier',
+      time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent',
+    }));
+  }, [pendingApprovals]);
 
   return (
     <div className="space-y-8">
@@ -50,7 +125,16 @@ export const AdminHome = () => {
             </span>
           </div>
           <div className="p-6 space-y-4">
-            {pendingApprovals.map((item, index) => (
+            {isLoading && (
+              <div className="text-sm text-gray-500">Loading approvals...</div>
+            )}
+            {!isLoading && error && (
+              <div className="text-sm text-red-600">{error}</div>
+            )}
+            {!isLoading && !error && pendingApprovals.length === 0 && (
+              <div className="text-sm text-gray-500">No pending approvals.</div>
+            )}
+            {!isLoading && !error && pendingApprovals.map((item, index) => (
               <div key={index} className="flex items-start justify-between pb-4 border-b border-gray-100 last:border-0">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -78,7 +162,12 @@ export const AdminHome = () => {
           </div>
           <div className="p-6">
             <ul className="space-y-4">
-              {recentActivity.map((activity, index) => (
+              {isLoading && <li className="text-sm text-gray-500">Loading activity...</li>}
+              {!isLoading && error && <li className="text-sm text-red-600">{error}</li>}
+              {!isLoading && !error && recentActivity.length === 0 && (
+                <li className="text-sm text-gray-500">No recent activity.</li>
+              )}
+              {!isLoading && !error && recentActivity.map((activity, index) => (
                 <li key={index} className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0">
                   <div className="w-2 h-2 bg-[#0066cc] rounded-full mt-2"></div>
                   <div className="flex-1">

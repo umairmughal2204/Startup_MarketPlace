@@ -18,6 +18,7 @@ interface Product {
   features?: string[];
   imageUrl?: string;
   imageName?: string;
+  status?: 'Pending' | 'Approved' | 'Rejected';
 }
 
 interface PaymentModal {
@@ -64,8 +65,9 @@ export const MarketPlace = () => {
             category: p.category,
             description: p.description,
             features: p.features || [],
+            status: p.status || 'Pending',
           }));
-          setProducts(mapped);
+          setProducts(mapped.filter((product: Product) => product.status === 'Approved'));
           setError(null);
         }
       })

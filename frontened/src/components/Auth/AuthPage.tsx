@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Rocket, User, ShoppingBag, TrendingUp, Shield } from 'lucide-react';
+import { Rocket, User, ShoppingBag, TrendingUp } from 'lucide-react';
 import { UserRole } from '../../context/AuthContext';
 
 interface AuthPageProps {
-  onLogin: (email: string, password: string, role: UserRole) => void;
-  onRegister: (name: string, email: string, password: string, role: UserRole, professionalDetails: ProfessionalDetails) => void;
+  onLogin: (email: string, password: string, role: UserRole) => Promise<void>;
+  onRegister: (name: string, email: string, password: string, role: UserRole, professionalDetails: ProfessionalDetails) => Promise<void>;
   onBack: () => void;
 }
 
@@ -31,6 +31,8 @@ interface ProfessionalDetails {
 export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,15 +40,22 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
   });
   const [professionalDetails, setProfessionalDetails] = useState<ProfessionalDetails>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRole) return;
+    setAuthError(null);
+    setAuthMessage(null);
 
-    if (isLogin) {
-      onLogin(formData.email, formData.password, selectedRole);
-    } else {
-      // Pass professional details to registration
-      onRegister(formData.name, formData.email, formData.password, selectedRole, professionalDetails);
+    try {
+      if (isLogin) {
+        await onLogin(formData.email, formData.password, selectedRole);
+      } else {
+        await onRegister(formData.name, formData.email, formData.password, selectedRole, professionalDetails);
+        setAuthMessage('Registration submitted. Wait for admin approval.');
+        setIsLogin(true);
+      }
+    } catch (err: any) {
+      setAuthError(err?.message || 'Authentication failed');
     }
   };
 
@@ -73,13 +82,6 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
           icon: <TrendingUp className="w-8 h-8" />,
           color: 'bg-[#0066cc]',
           description: 'Discover and fund startups',
-        },
-        {
-          value: 'Admin' as UserRole,
-          label: 'Admin',
-          icon: <Shield className="w-8 h-8" />,
-          color: 'bg-gray-700',
-          description: 'Manage platform and users',
         },
       ]
     : [
@@ -385,6 +387,18 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
                 Register
               </button>
             </div>
+
+            {authError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-6">
+                {authError}
+              </div>
+            )}
+
+            {authMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3 mb-6">
+                {authMessage}
+              </div>
+            )}
 
             {/* Role Selection */}
             <div className="mb-6">

@@ -52,7 +52,7 @@ router.get("/products", async (req, res) => {
 
 router.post("/products", upload.single("image"), async (req, res) => {
   try {
-    const { name, description, price, category, image, features, supplierName } = req.body || {};
+    const { name, description, price, category, image, features, supplierName, status } = req.body || {};
     if (!name || !description || price === undefined || !category) {
       return res.status(400).json({ message: "name, description, price, and category are required" });
     }
@@ -75,6 +75,7 @@ router.post("/products", upload.single("image"), async (req, res) => {
       description,
       price,
       category,
+      status: status || "Pending",
       image: image || "",
       imageName,
       imageUrl,
@@ -91,12 +92,13 @@ router.post("/products", upload.single("image"), async (req, res) => {
 router.put("/products/:id", upload.single("image"), async (req, res) => {
   try {
     const updates = {};
-    const { name, description, price, category, image, features, supplierName } = req.body || {};
+    const { name, description, price, category, image, features, supplierName, status } = req.body || {};
 
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
     if (price !== undefined) updates.price = price;
     if (category !== undefined) updates.category = category;
+    if (status !== undefined) updates.status = status;
     if (image !== undefined) updates.image = image;
     if (req.file) {
       updates.imageName = req.file.originalname;

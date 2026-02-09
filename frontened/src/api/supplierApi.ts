@@ -15,6 +15,7 @@ export const supplierApi = {
     imageFile?: File | null;
     features?: string[];
     supplierName?: string;
+    status?: string;
   }) {
     const formData = new FormData();
     formData.append("name", payload.name);
@@ -25,6 +26,7 @@ export const supplierApi = {
     if (payload.imageFile) formData.append("image", payload.imageFile);
     if (payload.features) formData.append("features", JSON.stringify(payload.features));
     if (payload.supplierName) formData.append("supplierName", payload.supplierName);
+    if (payload.status) formData.append("status", payload.status);
 
     const res = await fetch(`${API_BASE}/api/supplier/products`, {
       method: "POST",
@@ -44,6 +46,7 @@ export const supplierApi = {
       imageFile?: File | null;
       features?: string[];
       supplierName?: string;
+      status?: string;
     }
   ) {
     const formData = new FormData();
@@ -55,6 +58,7 @@ export const supplierApi = {
     if (payload.imageFile) formData.append("image", payload.imageFile);
     if (payload.features) formData.append("features", JSON.stringify(payload.features));
     if (payload.supplierName) formData.append("supplierName", payload.supplierName);
+    if (payload.status) formData.append("status", payload.status);
 
     const res = await fetch(`${API_BASE}/api/supplier/products/${id}`, {
       method: "PUT",

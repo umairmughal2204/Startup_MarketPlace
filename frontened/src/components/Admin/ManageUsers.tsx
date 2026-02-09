@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Search, UserCheck, UserX, Mail, Shield, X, Building2, Briefcase, Calendar, Eye, CheckCircle, XCircle } from 'lucide-react';
-import { UserRole, ProfessionalDetails } from '../../context/AuthContext';
+import { UserRole, ProfessionalDetails, useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 
 interface User {
@@ -8,11 +8,10 @@ interface User {
   name: string;
   email: string;
   role: UserRole;
-  status: 'Active' | 'Suspended';
-  joinedDate: Date;
-  lastActive: Date;
+  status?: 'Active' | 'Suspended';
   professionalDetails?: ProfessionalDetails;
   isVerified?: boolean;
+  createdAt?: string;
 }
 
 interface UserDetailsModal {
@@ -22,6 +21,7 @@ interface UserDetailsModal {
 
 export const ManageUsers = () => {
   const { addNotification } = useNotifications();
+  const { users, approveUser, toggleUserStatus } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('All');
   const [userDetailsModal, setUserDetailsModal] = useState<UserDetailsModal>({
@@ -29,117 +29,23 @@ export const ManageUsers = () => {
     user: null,
   });
   
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      role: 'Entrepreneur',
-      status: 'Active',
-      joinedDate: new Date('2025-12-01'),
-      lastActive: new Date('2026-01-15'),
-      professionalDetails: {
-        companyName: 'TechStartup Inc.',
-        industry: 'Technology',
-        businessStage: 'Early Stage',
-        foundedYear: '2024',
-      },
-      isVerified: true,
-    },
-    {
-      id: '2',
-      name: 'Sarah Smith',
-      email: 'sarah.smith@example.com',
-      role: 'Entrepreneur',
-      status: 'Active',
-      joinedDate: new Date('2025-12-15'),
-      lastActive: new Date('2026-01-14'),
-      professionalDetails: {
-        companyName: 'EcoSolutions',
-        industry: 'Sustainability',
-        businessStage: 'MVP',
-        foundedYear: '2025',
-      },
-      isVerified: true,
-    },
-    {
-      id: '3',
-      name: 'TechSupply Admin',
-      email: 'admin@techsupply.com',
-      role: 'Supplier',
-      status: 'Active',
-      joinedDate: new Date('2025-11-20'),
-      lastActive: new Date('2026-01-15'),
-      professionalDetails: {
-        businessName: 'Supply Solutions LLC',
-        businessType: 'Software Provider',
-        productsServices: 'Cloud hosting, SaaS solutions, and enterprise software',
-        yearsInBusiness: '5',
-      },
-      isVerified: true,
-    },
-    {
-      id: '4',
-      name: 'Mike Investor',
-      email: 'mike@investor.com',
-      role: 'Investor',
-      status: 'Active',
-      joinedDate: new Date('2025-12-05'),
-      lastActive: new Date('2026-01-13'),
-      professionalDetails: {
-        investmentFirm: 'Venture Capital Partners',
-        investmentRange: '$250K - $1M',
-        focusAreas: 'Technology, Healthcare, SaaS',
-        investmentStage: 'Seed',
-      },
-      isVerified: true,
-    },
-    {
-      id: '5',
-      name: 'Spam User',
-      email: 'spam@example.com',
-      role: 'Entrepreneur',
-      status: 'Suspended',
-      joinedDate: new Date('2026-01-01'),
-      lastActive: new Date('2026-01-02'),
-      professionalDetails: {
-        companyName: 'Fake Company',
-        industry: 'Other',
-        businessStage: 'Idea',
-        foundedYear: '2026',
-      },
-      isVerified: false,
-    },
-  ]);
-
-  const handleToggleStatus = (userId: string) => {
-    setUsers(users.map(user => {
-      if (user.id === userId) {
-        const newStatus = user.status === 'Active' ? 'Suspended' : 'Active';
-        addNotification({
-          type: 'general',
-          title: `User ${newStatus}`,
-          message: `${user.name} has been ${newStatus.toLowerCase()}.`,
-        });
-        return { ...user, status: newStatus as 'Active' | 'Suspended' };
-      }
-      return user;
-    }));
+  const handleToggleStatus = (userId: string, name: string, currentStatus?: string) => {
+    toggleUserStatus(userId);
+    const nextStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
+    addNotification({
+      type: 'general',
+      title: `User ${nextStatus}`,
+      message: `${name} has been ${nextStatus.toLowerCase()}.`,
+    });
   };
 
-  const handleToggleVerification = (userId: string) => {
-    setUsers(users.map(user => {
-      if (user.id === userId) {
-        const newVerificationStatus = !user.isVerified;
-        addNotification({
-          type: 'general',
-          title: newVerificationStatus ? 'User Verified' : 'Verification Revoked',
-          message: `${user.name}'s professional details have been ${newVerificationStatus ? 'verified' : 'unverified'}.`,
-        });
-        return { ...user, isVerified: newVerificationStatus };
-      }
-      return user;
-    }));
+  const handleToggleVerification = (userId: string, name: string, isVerified?: boolean) => {
+    approveUser(userId, !isVerified);
+    addNotification({
+      type: 'general',
+      title: !isVerified ? 'User Verified' : 'Verification Revoked',
+      message: `${name}'s professional details have been ${!isVerified ? 'verified' : 'unverified'}.`,
+    });
   };
 
   const filteredUsers = users.filter(user => {
@@ -150,14 +56,16 @@ export const ManageUsers = () => {
     return matchesSearch && matchesRole;
   });
 
-  const stats = {
-    total: users.length,
-    active: users.filter(u => u.status === 'Active').length,
-    suspended: users.filter(u => u.status === 'Suspended').length,
-    entrepreneurs: users.filter(u => u.role === 'Entrepreneur').length,
-    suppliers: users.filter(u => u.role === 'Supplier').length,
-    investors: users.filter(u => u.role === 'Investor').length,
-  };
+  const stats = useMemo(() => {
+    return {
+      total: users.length,
+      active: users.filter(u => u.status === 'Active').length,
+      suspended: users.filter(u => u.status === 'Suspended').length,
+      entrepreneurs: users.filter(u => u.role === 'Entrepreneur').length,
+      suppliers: users.filter(u => u.role === 'Supplier').length,
+      investors: users.filter(u => u.role === 'Investor').length,
+    };
+  }, [users]);
 
   return (
     <div className="space-y-6">
@@ -217,6 +125,7 @@ export const ManageUsers = () => {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">User</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Verified</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Joined</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Last Active</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
@@ -248,18 +157,27 @@ export const ManageUsers = () => {
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                      user.status === 'Active' 
+                      (user.status || 'Active') === 'Active' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {user.status}
+                      {user.status || 'Active'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      user.isVerified
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {user.isVerified ? 'Verified' : 'Pending'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {user.joinedDate.toLocaleDateString()}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {user.lastActive.toLocaleDateString()}
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2">
@@ -270,15 +188,37 @@ export const ManageUsers = () => {
                         <Eye className="w-4 h-4" />
                         Details
                       </button>
+                      {user.role !== 'Admin' && (
+                        <button
+                          onClick={() => handleToggleVerification(user.id, user.name, user.isVerified)}
+                          className={`px-3 py-1 rounded-lg text-sm font-semibold transition flex items-center gap-1 ${
+                            user.isVerified
+                              ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
+                        >
+                          {user.isVerified ? (
+                            <>
+                              <XCircle className="w-4 h-4" />
+                              Unverify
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              Verify
+                            </>
+                          )}
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleToggleStatus(user.id)}
+                        onClick={() => handleToggleStatus(user.id, user.name, user.status || 'Active')}
                         className={`px-3 py-1 rounded-lg text-sm font-semibold transition ${
-                          user.status === 'Active'
+                          (user.status || 'Active') === 'Active'
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
                       >
-                        {user.status === 'Active' ? 'Suspend' : 'Activate'}
+                        {(user.status || 'Active') === 'Active' ? 'Suspend' : 'Activate'}
                       </button>
                     </div>
                   </td>
@@ -308,7 +248,6 @@ export const ManageUsers = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-
             <div className="p-6 space-y-6">
               {/* Basic Information */}
               <div>
@@ -339,20 +278,28 @@ export const ManageUsers = () => {
                   <div>
                     <div className="text-sm text-gray-600 mb-1">Account Status</div>
                     <span className={`inline-block px-3 py-1 text-sm font-semibold rounded-full ${
-                      userDetailsModal.user.status === 'Active' 
+                      (userDetailsModal.user.status || 'Active') === 'Active' 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {userDetailsModal.user.status}
+                      {userDetailsModal.user.status || 'Active'}
                     </span>
                   </div>
                   <div>
                     <div className="text-sm text-gray-600 mb-1">Joined Date</div>
-                    <div className="font-semibold text-gray-900">{userDetailsModal.user.joinedDate.toLocaleDateString()}</div>
+                    <div className="font-semibold text-gray-900">
+                      {userDetailsModal.user.createdAt
+                        ? new Date(userDetailsModal.user.createdAt).toLocaleDateString()
+                        : 'N/A'}
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-gray-600 mb-1">Last Active</div>
-                    <div className="font-semibold text-gray-900">{userDetailsModal.user.lastActive.toLocaleDateString()}</div>
+                    <div className="font-semibold text-gray-900">
+                      {userDetailsModal.user.createdAt
+                        ? new Date(userDetailsModal.user.createdAt).toLocaleDateString()
+                        : 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -518,7 +465,11 @@ export const ManageUsers = () => {
                 {userDetailsModal.user.professionalDetails && (
                   <button
                     onClick={() => {
-                      handleToggleVerification(userDetailsModal.user!.id);
+                      handleToggleVerification(
+                        userDetailsModal.user!.id,
+                        userDetailsModal.user!.name,
+                        userDetailsModal.user!.isVerified
+                      );
                     }}
                     className={`flex-1 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
                       userDetailsModal.user.isVerified
@@ -542,16 +493,20 @@ export const ManageUsers = () => {
 
                 <button
                   onClick={() => {
-                    handleToggleStatus(userDetailsModal.user!.id);
+                    handleToggleStatus(
+                      userDetailsModal.user!.id,
+                      userDetailsModal.user!.name,
+                      userDetailsModal.user!.status || 'Active'
+                    );
                     setUserDetailsModal({ isOpen: false, user: null });
                   }}
                   className={`py-3 px-6 rounded-lg font-semibold transition ${
-                    userDetailsModal.user.status === 'Active'
+                    (userDetailsModal.user.status || 'Active') === 'Active'
                       ? 'bg-red-600 text-white hover:bg-red-700'
                       : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
                 >
-                  {userDetailsModal.user.status === 'Active' ? 'Suspend User' : 'Activate User'}
+                  {(userDetailsModal.user.status || 'Active') === 'Active' ? 'Suspend User' : 'Activate User'}
                 </button>
               </div>
             </div>
