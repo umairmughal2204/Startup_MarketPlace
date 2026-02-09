@@ -1,49 +1,88 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, MessageSquare, Star, TrendingUp } from 'lucide-react';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { investorApi } from '../../api/investorApi';
+
+interface IdeaItem {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
+  aiScore: number | null;
+  feedbackCount: number;
+  createdAt?: string;
+}
+
+interface FeedbackItem {
+  id: string;
+  ideaId: string;
+  ideaTitle?: string;
+  rating: number;
+  comment: string;
+  category?: string;
+  createdAt?: string;
+}
 
 export const InvestorHome = () => {
-  const stats = [
-    { label: 'Ideas Reviewed', value: '47', icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-    { label: 'Feedback Given', value: '32', icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#0099dd]' },
-    { label: 'High Potential', value: '12', icon: <Star className="w-6 h-6" />, color: 'bg-[#0088dd]' },
-    { label: 'Categories', value: '8', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
-  ];
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const topIdeas = [
-    {
-      id: '1',
-      title: 'AI-Powered Fitness App',
-      entrepreneur: 'John Doe',
-      category: 'Technology',
-      marketFit: 8.5,
-      feasibility: 8.2,
-      yourRating: 5,
-    },
-    {
-      id: '2',
-      title: 'Sustainable Packaging Solution',
-      entrepreneur: 'Sarah Smith',
-      category: 'Sustainability',
-      marketFit: 9.2,
-      feasibility: 7.8,
-      yourRating: 5,
-    },
-    {
-      id: '3',
-      title: 'EdTech Platform for K-12',
-      entrepreneur: 'Mike Johnson',
-      category: 'Education',
-      marketFit: 8.8,
-      feasibility: 8.5,
-      yourRating: 4,
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    Promise.all([entrepreneurApi.getIdeas(), investorApi.getFeedback()])
+      .then(([ideaData, feedbackData]) => {
+        if (!isMounted) return;
+        setIdeas(ideaData);
+        setFeedback(feedbackData);
+        setError(null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setError('Failed to load dashboard data');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsLoading(false);
+      });
 
-  const recentActivity = [
-    { action: 'Reviewed "AI-Powered Fitness App"', time: '2 hours ago' },
-    { action: 'Left feedback on "Sustainable Packaging Solution"', time: '5 hours ago' },
-    { action: 'Rated "EdTech Platform for K-12"', time: '1 day ago' },
-  ];
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const reviewed = feedback.length;
+    const feedbackGiven = feedback.length;
+    const highPotential = ideas.filter((idea) => (idea.aiScore || 0) >= 8.5).length;
+    const categoryCount = new Set(ideas.map((idea) => idea.category).filter(Boolean)).size;
+    return [
+      { label: 'Ideas Reviewed', value: String(reviewed), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
+      { label: 'Feedback Given', value: String(feedbackGiven), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#0099dd]' },
+      { label: 'High Potential', value: String(highPotential), icon: <Star className="w-6 h-6" />, color: 'bg-[#0088dd]' },
+      { label: 'Categories', value: String(categoryCount), icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
+    ];
+  }, [ideas, feedback]);
+
+  const topIdeas = useMemo(() => {
+    return [...ideas]
+      .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
+      .slice(0, 3);
+  }, [ideas]);
+
+  const recentActivity = useMemo(() => {
+    return feedback
+      .slice()
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 3)
+      .map((item) => ({
+        action: `Left feedback on "${item.ideaTitle || 'an idea'}"`,
+        time: item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Recent',
+      }));
+  }, [feedback]);
 
   return (
     <div className="space-y-8">
@@ -69,7 +108,16 @@ export const InvestorHome = () => {
             <h2 className="text-xl font-bold">High Potential Ideas</h2>
           </div>
           <div className="p-6 space-y-4">
-            {topIdeas.map((idea) => (
+            {isLoading && (
+              <div className="text-sm text-gray-500">Loading ideas...</div>
+            )}
+            {!isLoading && error && (
+              <div className="text-sm text-red-600">{error}</div>
+            )}
+            {!isLoading && !error && topIdeas.length === 0 && (
+              <div className="text-sm text-gray-500">No ideas yet.</div>
+            )}
+            {!isLoading && !error && topIdeas.map((idea) => (
               <div
                 key={idea.id}
                 className="pb-4 border-b border-gray-100 last:border-0"
@@ -78,30 +126,17 @@ export const InvestorHome = () => {
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">{idea.title}</h3>
                     <p className="text-sm text-gray-500">
-                      by {idea.entrepreneur} • {idea.category}
+                      {idea.category}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
                     <Star className="w-4 h-4 fill-[#0088dd] text-[#0088dd]" />
                     <span className="text-sm font-semibold text-[#0066cc]">
-                      {idea.yourRating}
+                      {idea.aiScore !== null ? idea.aiScore : 'N/A'}
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-500">Market Fit:</span>{' '}
-                    <span className="font-semibold text-[#0066cc]">
-                      {idea.marketFit}/10
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Feasibility:</span>{' '}
-                    <span className="font-semibold text-[#0099dd]">
-                      {idea.feasibility}/10
-                    </span>
-                  </div>
-                </div>
+                <div className="text-sm text-gray-500">Feedback: {idea.feedbackCount || 0}</div>
               </div>
             ))}
           </div>
@@ -114,7 +149,16 @@ export const InvestorHome = () => {
           </div>
           <div className="p-6">
             <ul className="space-y-4">
-              {recentActivity.map((activity, index) => (
+              {isLoading && (
+                <li className="text-sm text-gray-500">Loading activity...</li>
+              )}
+              {!isLoading && error && (
+                <li className="text-sm text-red-600">{error}</li>
+              )}
+              {!isLoading && !error && recentActivity.length === 0 && (
+                <li className="text-sm text-gray-500">No recent activity.</li>
+              )}
+              {!isLoading && !error && recentActivity.map((activity, index) => (
                 <li
                   key={index}
                   className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0"

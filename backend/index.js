@@ -5,6 +5,7 @@ const path = require("path");
 require("dotenv").config();
 const entrepreneurRoutes = require("./routes/entrepreneur");
 const supplierRoutes = require("./routes/supplier");
+const investorRoutes = require("./routes/investor");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -16,6 +17,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/entrepreneur", entrepreneurRoutes);
 app.use("/api/supplier", supplierRoutes);
+app.use("/api/investor", investorRoutes);
 
 // Simple health check route
 app.get("/", (req, res) => {

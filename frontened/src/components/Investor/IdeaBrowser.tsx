@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
-import { Search, Filter, Star, TrendingUp, Target, MessageSquare, X, FileText, Download, Eye } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Search, Filter, Star, Target, MessageSquare, X, FileText, Download } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
+import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { investorApi } from '../../api/investorApi';
 
 interface Idea {
   id: string;
   title: string;
   description: string;
-  entrepreneur: string;
   category: string;
-  marketFit: number;
-  feasibility: number;
-  submittedDate: Date;
-  document?: {
-    name: string;
-    url: string;
-    type: string;
-  };
+  status: 'Pending' | 'Under Review' | 'Approved' | 'Rejected';
+  aiScore: number | null;
+  feedbackCount: number;
+  documentName?: string | null;
+  documentUrl?: string | null;
+  createdAt?: string;
 }
 
 interface FeedbackModal {
@@ -31,6 +30,9 @@ interface DetailModal {
 
 export const IdeaBrowser = () => {
   const { addNotification } = useNotifications();
+  const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [feedbackModal, setFeedbackModal] = useState<FeedbackModal>({
@@ -45,96 +47,44 @@ export const IdeaBrowser = () => {
     idea: null,
   });
 
-  const categories = ['All', 'Technology', 'Healthcare', 'Education', 'E-commerce', 'Finance', 'Sustainability'];
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
-  const ideas: Idea[] = [
-    {
-      id: '1',
-      title: 'AI-Powered Fitness App',
-      description: 'A mobile app that uses AI to create personalized workout plans based on user goals, fitness level, and available equipment.',
-      entrepreneur: 'John Doe',
-      category: 'Technology',
-      marketFit: 8.5,
-      feasibility: 8.2,
-      submittedDate: new Date('2026-01-12'),
-      document: {
-        name: 'AI_Fitness_Business_Plan.pdf',
-        url: '#',
-        type: 'PDF',
-      },
-    },
-    {
-      id: '2',
-      title: 'Sustainable Packaging Solution',
-      description: 'Biodegradable packaging materials made from agricultural waste, targeting e-commerce and food delivery sectors.',
-      entrepreneur: 'Sarah Smith',
-      category: 'Sustainability',
-      marketFit: 9.2,
-      feasibility: 7.8,
-      submittedDate: new Date('2026-01-14'),
-      document: {
-        name: 'Sustainable_Packaging_Proposal.pdf',
-        url: '#',
-        type: 'PDF',
-      },
-    },
-    {
-      id: '3',
-      title: 'EdTech Platform for K-12',
-      description: 'Interactive learning platform with gamification elements designed to improve student engagement and learning outcomes.',
-      entrepreneur: 'Mike Johnson',
-      category: 'Education',
-      marketFit: 8.8,
-      feasibility: 8.5,
-      submittedDate: new Date('2026-01-10'),
-    },
-    {
-      id: '4',
-      title: 'Telemedicine for Rural Areas',
-      description: 'Platform connecting rural patients with healthcare providers via video consultations and mobile health units.',
-      entrepreneur: 'Emily Chen',
-      category: 'Healthcare',
-      marketFit: 9.0,
-      feasibility: 7.5,
-      submittedDate: new Date('2026-01-13'),
-      document: {
-        name: 'Telemedicine_Platform_Detailed_Plan.docx',
-        url: '#',
-        type: 'DOCX',
-      },
-    },
-    {
-      id: '5',
-      title: 'Blockchain Supply Chain Tracker',
-      description: 'Transparent supply chain management using blockchain to verify product authenticity and ethical sourcing.',
-      entrepreneur: 'David Lee',
-      category: 'Technology',
-      marketFit: 7.8,
-      feasibility: 7.2,
-      submittedDate: new Date('2026-01-11'),
-    },
-    {
-      id: '6',
-      title: 'Smart Home Energy Manager',
-      description: 'IoT-based system to optimize home energy consumption and integrate renewable energy sources.',
-      entrepreneur: 'Lisa Wang',
-      category: 'Technology',
-      marketFit: 8.3,
-      feasibility: 8.0,
-      submittedDate: new Date('2026-01-15'),
-      document: {
-        name: 'Smart_Energy_Technical_Specs.pdf',
-        url: '#',
-        type: 'PDF',
-      },
-    },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    entrepreneurApi
+      .getIdeas()
+      .then((data) => {
+        if (!isMounted) return;
+        setIdeas(data);
+        setError(null);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setError('Failed to load ideas');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const unique = new Set<string>();
+    ideas.forEach((idea) => {
+      if (idea.category) unique.add(idea.category);
+    });
+    return ['All', ...Array.from(unique)];
+  }, [ideas]);
 
   const filteredIdeas = ideas.filter((idea) => {
     const matchesSearch =
       idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      idea.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      idea.entrepreneur.toLowerCase().includes(searchTerm.toLowerCase());
+      idea.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || idea.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -157,9 +107,29 @@ export const IdeaBrowser = () => {
     });
   };
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (rating === 0) {
       alert('Please select a rating');
+      return;
+    }
+
+    if (!feedbackModal.ideaId) return;
+
+    try {
+      await investorApi.createFeedback({
+        ideaId: feedbackModal.ideaId,
+        rating,
+        comment,
+      });
+      setIdeas((prev) =>
+        prev.map((idea) =>
+          idea.id === feedbackModal.ideaId
+            ? { ...idea, feedbackCount: (idea.feedbackCount || 0) + 1 }
+            : idea
+        )
+      );
+    } catch (err) {
+      alert('Failed to submit feedback');
       return;
     }
 
@@ -197,7 +167,7 @@ export const IdeaBrowser = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search ideas, entrepreneurs..."
+              placeholder="Search ideas..."
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
             />
           </div>
@@ -221,7 +191,7 @@ export const IdeaBrowser = () => {
 
       {/* Ideas Grid */}
       <div className="grid md:grid-cols-2 gap-6">
-        {filteredIdeas.map((idea) => (
+        {!isLoading && !error && filteredIdeas.map((idea) => (
           <div
             key={idea.id}
             className="bg-white rounded-lg shadow hover:shadow-xl transition p-6"
@@ -233,9 +203,6 @@ export const IdeaBrowser = () => {
                   <span className="bg-blue-100 text-[#0066cc] text-xs px-2 py-1 rounded">
                     {idea.category}
                   </span>
-                  <span className="text-sm text-gray-500">
-                    by {idea.entrepreneur}
-                  </span>
                 </div>
               </div>
             </div>
@@ -243,25 +210,21 @@ export const IdeaBrowser = () => {
             <p className="text-gray-700 mb-4 line-clamp-3">{idea.description}</p>
 
             {/* AI Scores */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <Target className="w-4 h-4 text-[#0066cc]" />
-                  <span className="text-xs font-semibold text-gray-700">Market Fit</span>
-                </div>
-                <div className="text-2xl font-bold text-[#0066cc]">{idea.marketFit}/10</div>
+            <div className="bg-blue-50 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4 text-[#0066cc]" />
+                <span className="text-xs font-semibold text-gray-700">AI Score</span>
               </div>
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-[#0099dd]" />
-                  <span className="text-xs font-semibold text-gray-700">Feasibility</span>
-                </div>
-                <div className="text-2xl font-bold text-[#0099dd]">{idea.feasibility}/10</div>
+              <div className="text-2xl font-bold text-[#0066cc]">
+                {idea.aiScore !== null ? `${idea.aiScore}/10` : 'N/A'}
               </div>
             </div>
 
             <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-              <span>Submitted {idea.submittedDate.toLocaleDateString()}</span>
+              <span>
+                Submitted{' '}
+                {idea.createdAt ? new Date(idea.createdAt).toLocaleDateString() : 'N/A'}
+              </span>
             </div>
 
             <button
@@ -272,7 +235,7 @@ export const IdeaBrowser = () => {
               Provide Feedback
             </button>
 
-            {idea.document && (
+            {idea.documentUrl && (
               <button
                 onClick={() => openDetailModal(idea)}
                 className="w-full bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition flex items-center justify-center gap-2 mt-2"
@@ -285,7 +248,19 @@ export const IdeaBrowser = () => {
         ))}
       </div>
 
-      {filteredIdeas.length === 0 && (
+      {isLoading && (
+        <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+          Loading ideas...
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className="bg-white rounded-lg shadow p-12 text-center text-red-600">
+          {error}
+        </div>
+      )}
+
+      {!isLoading && !error && filteredIdeas.length === 0 && (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <p className="text-gray-500">No ideas found matching your criteria.</p>
         </div>
@@ -398,7 +373,10 @@ export const IdeaBrowser = () => {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500">
-                  Submitted by <span className="font-semibold text-gray-900">{detailModal.idea.entrepreneur}</span> on {detailModal.idea.submittedDate.toLocaleDateString()}
+                  Submitted on{' '}
+                  {detailModal.idea.createdAt
+                    ? new Date(detailModal.idea.createdAt).toLocaleDateString()
+                    : 'N/A'}
                 </p>
               </div>
 
@@ -409,31 +387,23 @@ export const IdeaBrowser = () => {
               </div>
 
               {/* AI Scores */}
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-1 gap-6">
                 <div className="bg-blue-50 rounded-lg p-6">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                       <Target className="w-6 h-6 text-[#0066cc]" />
                     </div>
-                    <h4 className="font-bold text-lg">Market Fit Score</h4>
+                    <h4 className="font-bold text-lg">AI Score</h4>
                   </div>
-                  <div className="text-4xl font-bold text-[#0066cc]">{detailModal.idea.marketFit}/10</div>
+                  <div className="text-4xl font-bold text-[#0066cc]">
+                    {detailModal.idea.aiScore !== null ? `${detailModal.idea.aiScore}/10` : 'N/A'}
+                  </div>
                   <p className="text-sm text-gray-600 mt-2">AI-analyzed market potential</p>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-6">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="w-6 h-6 text-[#0099dd]" />
-                    </div>
-                    <h4 className="font-bold text-lg">Feasibility Score</h4>
-                  </div>
-                  <div className="text-4xl font-bold text-[#0099dd]">{detailModal.idea.feasibility}/10</div>
-                  <p className="text-sm text-gray-600 mt-2">Implementation viability assessment</p>
                 </div>
               </div>
 
               {/* Document Section */}
-              {detailModal.idea.document && (
+              {detailModal.idea.documentUrl && (
                 <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -445,18 +415,20 @@ export const IdeaBrowser = () => {
                   <div className="bg-gray-50 rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900">{detailModal.idea.document.name}</p>
-                        <p className="text-sm text-gray-600">Type: {detailModal.idea.document.type}</p>
+                        <p className="font-semibold text-gray-900">
+                          {detailModal.idea.documentName || 'Document'}
+                        </p>
+                        <p className="text-sm text-gray-600">Type: Document</p>
                       </div>
                       <span className="bg-blue-100 text-[#0066cc] px-3 py-1 rounded text-sm font-semibold">
-                        {detailModal.idea.document.type}
+                        Document
                       </span>
                     </div>
                   </div>
 
                   <a
-                    href={detailModal.idea.document.url}
-                    download={detailModal.idea.document.name}
+                    href={`${API_BASE}${detailModal.idea.documentUrl}`}
+                    download={detailModal.idea.documentName || undefined}
                     className="w-full bg-[#0066cc] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
