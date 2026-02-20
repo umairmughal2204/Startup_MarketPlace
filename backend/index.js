@@ -9,6 +9,8 @@ const entrepreneurRoutes = require("./routes/entrepreneur");
 const supplierRoutes = require("./routes/supplier");
 const investorRoutes = require("./routes/investor");
 const chatRoutes = require("./routes/chat");
+const authRoutes = require("./routes/auth");
+const User = require("./models/User");
 
 const app = express();
 const server = http.createServer(app);
@@ -23,6 +25,7 @@ app.use("/api/entrepreneur", entrepreneurRoutes);
 app.use("/api/supplier", supplierRoutes);
 app.use("/api/investor", investorRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/auth", authRoutes);
 
 // Simple health check route
 app.get("/", (req, res) => {
@@ -38,6 +41,20 @@ const startServer = async () => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log("MongoDB connected");
+
+    const adminEmail = "admin@gmail.com";
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (!existingAdmin) {
+      await User.create({
+        name: "Admin",
+        email: adminEmail,
+        password: "admin123",
+        role: "Admin",
+        isVerified: true,
+        status: "Active",
+      });
+      console.log("Default admin account created");
+    }
 
     const io = new Server(server, {
       cors: {

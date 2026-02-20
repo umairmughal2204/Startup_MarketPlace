@@ -30,7 +30,8 @@ export interface ProfessionalDetails {
 }
 
 export interface User {
-  id: string;
+  _id?: string;
+  id?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -43,18 +44,14 @@ export interface User {
   profileVisibility?: 'Public' | 'Private';
 }
 
-interface StoredUser extends User {
-  password: string;
-}
-
 interface AuthContextType {
   user: User | null;
   users: User[];
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   register: (name: string, email: string, password: string, role: UserRole, professionalDetails?: ProfessionalDetails) => Promise<void>;
   logout: () => void;
-  approveUser: (userId: string, isVerified: boolean) => void;
-  toggleUserStatus: (userId: string) => void;
+  approveUser: (userId: string, isVerified: boolean) => Promise<void>;
+  toggleUserStatus: (userId: string) => Promise<void>;
   updateProfile: (payload: {
     name: string;
     email: string;
@@ -62,160 +59,121 @@ interface AuthContextType {
     profileVisibility?: 'Public' | 'Private';
   }) => Promise<void>;
   updatePassword: (currentPassword: string, nextPassword: string) => Promise<void>;
-  updateNotifications: (preferences: NotificationPreferences) => void;
+  updateNotifications: (preferences: NotificationPreferences) => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const ADMIN_EMAIL = 'admin@gmail.com';
   const ADMIN_PASSWORD = 'admin123';
-  const USERS_KEY = 'slm_users';
   const CURRENT_USER_KEY = 'slm_current_user';
 
-  const loadUsers = () => {
-    if (typeof window === 'undefined') return [] as StoredUser[];
+  const [user, setUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load current user from localStorage on mount
+  useEffect(() => {
+    const loadCurrentUser = () => {
+      try {
+        const raw = window.localStorage?.getItem(CURRENT_USER_KEY);
+        if (raw) {
+          const loadedUser = JSON.parse(raw);
+          setUser(loadedUser);
+        }
+      } catch (err) {
+        console.error('Failed to load current user:', err);
+      }
+    };
+    loadCurrentUser();
+    setLoading(false);
+  }, []);
+
+  // Fetch all users for admin dashboard
+  const fetchUsers = async () => {
     try {
-      const raw = window.localStorage.getItem(USERS_KEY);
-      if (raw) return JSON.parse(raw) as StoredUser[];
-    } catch (err) {
-      return [] as StoredUser[];
+      const response = await fetch(`${API_URL}/auth/users`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
     }
-    return [] as StoredUser[];
   };
 
-  const saveUsers = (usersToSave: StoredUser[]) => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(USERS_KEY, JSON.stringify(usersToSave));
-  };
-
-  const loadCurrentUser = () => {
-    if (typeof window === 'undefined') return null as User | null;
-    try {
-      const raw = window.localStorage.getItem(CURRENT_USER_KEY);
-      if (raw) return JSON.parse(raw) as User;
-    } catch (err) {
-      return null as User | null;
-    }
-    return null as User | null;
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const saveCurrentUser = (current: User | null) => {
-    if (typeof window === 'undefined') return;
     if (!current) {
-      window.localStorage.removeItem(CURRENT_USER_KEY);
+      window.localStorage?.removeItem(CURRENT_USER_KEY);
       return;
     }
-    window.localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(current));
+    window.localStorage?.setItem(CURRENT_USER_KEY, JSON.stringify(current));
   };
-
-  const [user, setUser] = useState<User | null>(() => loadCurrentUser());
-  const [storedUsers, setStoredUsers] = useState<StoredUser[]>(() => {
-    const initial = loadUsers();
-    const hasAdmin = initial.some((u) => u.email.toLowerCase() === ADMIN_EMAIL);
-    if (hasAdmin) return initial;
-    const adminUser: StoredUser = {
-      id: 'admin-1',
-      name: 'Super Admin',
-      email: ADMIN_EMAIL,
-      role: 'Admin',
-      password: ADMIN_PASSWORD,
-      isVerified: true,
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-      profileVisibility: 'Private',
-    };
-    const next = [...initial, adminUser];
-    saveUsers(next);
-    return next;
-  });
-
-  useEffect(() => {
-    saveUsers(storedUsers);
-  }, [storedUsers]);
-
-  useEffect(() => {
-    const current = loadCurrentUser();
-    if (!current) return;
-    const found = storedUsers.find((u) => u.id === current.id);
-    if (!found) {
-      saveCurrentUser(null);
-      return;
-    }
-    if (found.status === 'Suspended') {
-      saveCurrentUser(null);
-      return;
-    }
-    if (!found.isVerified && found.role !== 'Admin') {
-      saveCurrentUser(null);
-      return;
-    }
-    const { password: _password, ...safeUser } = found;
-    setUser(safeUser);
-  }, [storedUsers]);
-
-  useEffect(() => {
-    saveCurrentUser(user);
-  }, [user]);
 
   const login = async (email: string, password: string, role: UserRole) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const found = storedUsers.find(
-      (u) => u.email.toLowerCase() === normalizedEmail && u.role === role
-    );
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, role }),
+      });
 
-    if (!found) {
-      throw new Error('Account not found');
-    }
-
-    if (found.password !== password) {
-      throw new Error('Invalid credentials');
-    }
-
-    if (found.role === 'Admin') {
-      if (found.email.toLowerCase() !== ADMIN_EMAIL) {
-        throw new Error('Invalid admin account');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
       }
-    }
 
-    if (found.status === 'Suspended') {
-      throw new Error('Account suspended');
+      const data = await response.json();
+      const loggedInUser: User = {
+        id: data.user._id,
+        ...data.user,
+      };
+      setUser(loggedInUser);
+      saveCurrentUser(loggedInUser);
+    } finally {
+      setLoading(false);
     }
-
-    if (!found.isVerified && found.role !== 'Admin') {
-      throw new Error('Account pending admin approval');
-    }
-
-    const { password: _password, ...safeUser } = found;
-    setUser(safeUser);
   };
 
-  const register = async (name: string, email: string, password: string, role: UserRole, professionalDetails?: ProfessionalDetails) => {
-    if (role === 'Admin') {
-      throw new Error('Admin accounts cannot be created');
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    professionalDetails?: ProfessionalDetails
+  ) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+          professionalDetails,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      // Refresh users list
+      await fetchUsers();
+    } finally {
+      setLoading(false);
     }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const exists = storedUsers.some((u) => u.email.toLowerCase() === normalizedEmail);
-    if (exists) {
-      throw new Error('Email already registered');
-    }
-
-    const newUser: StoredUser = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      email: normalizedEmail,
-      role,
-      password,
-      professionalDetails,
-      isVerified: false,
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-      profileVisibility: 'Public',
-    };
-
-    setStoredUsers((prev) => [...prev, newUser]);
-    setUser(null);
   };
 
   const logout = () => {
@@ -229,82 +187,113 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     phone?: string;
     profileVisibility?: 'Public' | 'Private';
   }) => {
-    if (!user) throw new Error('Not authenticated');
-    const normalizedEmail = payload.email.trim().toLowerCase();
-    if (user.role === 'Admin' && normalizedEmail !== ADMIN_EMAIL) {
-      throw new Error('Admin email cannot be changed');
-    }
-    const emailTaken = storedUsers.some(
-      (u) => u.email.toLowerCase() === normalizedEmail && u.id !== user.id
-    );
-    if (emailTaken) {
-      throw new Error('Email already in use');
-    }
+    if (!user?.id) throw new Error('Not authenticated');
 
-    setStoredUsers((prev) =>
-      prev.map((u) =>
-        u.id === user.id
-          ? {
-              ...u,
-              name: payload.name,
-              email: normalizedEmail,
-              phone: payload.phone || '',
-              profileVisibility: payload.profileVisibility || 'Public',
-            }
-          : u
-      )
-    );
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/users/${user.id}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    setUser((prev) =>
-      prev
-        ? {
-            ...prev,
-            name: payload.name,
-            email: normalizedEmail,
-            phone: payload.phone || '',
-            profileVisibility: payload.profileVisibility || 'Public',
-          }
-        : prev
-    );
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const data = await response.json();
+      const updatedUser: User = {
+        ...user,
+        ...data.user,
+        id: data.user._id,
+      };
+      setUser(updatedUser);
+      saveCurrentUser(updatedUser);
+      await fetchUsers();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updatePassword = async (currentPassword: string, nextPassword: string) => {
-    if (!user) throw new Error('Not authenticated');
-    const stored = storedUsers.find((u) => u.id === user.id);
-    if (!stored) throw new Error('Account not found');
-    if (stored.password !== currentPassword) {
-      throw new Error('Current password is incorrect');
+    if (!user?.id) throw new Error('Not authenticated');
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/users/${user.id}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword: nextPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update password');
+      }
+    } finally {
+      setLoading(false);
     }
-    setStoredUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, password: nextPassword } : u))
-    );
   };
 
-  const updateNotifications = (preferences: NotificationPreferences) => {
-    if (!user) return;
-    setStoredUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, notificationPreferences: preferences } : u))
-    );
-    setUser((prev) => (prev ? { ...prev, notificationPreferences: preferences } : prev));
+  const updateNotifications = async (preferences: NotificationPreferences) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`${API_URL}/auth/users/${user.id}/notifications`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationPreferences: preferences }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const updatedUser: User = {
+          ...user,
+          ...data.user,
+          id: data.user._id,
+        };
+        setUser(updatedUser);
+        saveCurrentUser(updatedUser);
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Failed to update notifications:', error);
+    }
   };
 
-  const approveUser = (userId: string, isVerified: boolean) => {
-    setStoredUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, isVerified } : u))
-    );
+  const approveUser = async (userId: string, isVerified: boolean) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/users/${userId}/verify`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isVerified }),
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Failed to approve user:', error);
+    }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setStoredUsers((prev) =>
-      prev.map((u) =>
-        u.id === userId ? { ...u, status: u.status === 'Suspended' ? 'Active' : 'Suspended' } : u
-      )
-    );
-  };
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-  const users = useMemo(() => {
-    return storedUsers.map(({ password: _password, ...rest }) => rest);
-  }, [storedUsers]);
+      if (response.ok) {
+        await fetchUsers();
+      }
+    } catch (error) {
+      console.error('Failed to update user status:', error);
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -319,6 +308,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         updateProfile,
         updatePassword,
         updateNotifications,
+        loading,
       }}
     >
       {children}
