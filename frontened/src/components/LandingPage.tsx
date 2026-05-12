@@ -113,9 +113,7 @@ const AnimatedRoleText = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -20, opacity: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className={`inline-block whitespace-nowrap ${
-            index === 0 ? 'text-blue-600' : index === 1 ? 'text-teal-600' : 'text-indigo-600'
-          }`}
+          className="inline-block whitespace-nowrap text-white/70"
         >
           {roles[index]}
         </motion.span>
@@ -216,45 +214,92 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-56 bg-gradient-aurora-base text-center overflow-hidden">
+      <section className="relative pt-32 md:pt-40 pb-32 md:pb-48 bg-[#0b1b3a] overflow-hidden">
         {/* Subtle Background Pattern */}
         <div className="absolute inset-0 opacity-[0.03] z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-        
+        <div className="absolute -top-32 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-teal-500/20 blur-[120px]"></div>
+        <div className="absolute -bottom-28 right-0 h-80 w-80 rounded-full bg-blue-500/20 blur-[140px]"></div>
+
         <CircuitBoardDecoration side="left" />
         <CircuitBoardDecoration side="right" />
-        
+
         <div className="container mx-auto px-6 relative z-10">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold !text-white mb-6 leading-tight"
-          >
-            A Global Ecosystem for<br/>
-            <span className="aurora-text">
-              Startup Innovation
-            </span>
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-slate-200 max-w-3xl mx-auto mb-10 text-lg leading-relaxed glass-dark p-6 rounded-2xl"
-          >
-            Connecting verified entrepreneurs, suppliers, and investors on our<br/>
-            powerful collaboration platform. Gain insights and find opportunities.
-          </motion.p>
-          <motion.button 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onGetStarted}
-            className="glass hover:bg-white/20 text-white px-8 py-3.5 rounded text-lg font-medium transition-colors shadow-lg"
-          >
-            Explore Opportunities
-          </motion.button>
+          <div className="grid gap-12 items-center text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.2em] text-white/90">
+                <span className="h-2 w-2 rounded-full bg-teal-400"></span>
+                Verified launchpad network
+                <span className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white/10 px-2 py-0.5 text-[10px] tracking-[0.15em]">SINCE 2026</span>
+              </div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.1 }}
+                className="mt-6 text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight"
+              >
+                <span className="text-white">The marketplace where</span>
+                <span className="block aurora-text">startup innovation</span>
+                <span className="text-white">becomes real traction.</span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="mt-6 text-white/85 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto drop-shadow-[0_2px_10px_rgba(0,0,0,0.45)]"
+              >
+                Built for <AnimatedRoleText /> who need verified partners, faster decisions,
+                and capital-ready opportunities across the entire supply chain.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+                className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
+              >
+                <button
+                  onClick={onGetStarted}
+                  className="w-full sm:w-auto bg-teal-500 hover:bg-teal-400 text-white px-7 py-3.5 rounded-xl text-base font-medium transition-all shadow-[0_10px_25px_-10px_rgba(20,184,166,0.8)] flex items-center justify-center gap-2"
+                >
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => scrollToSection('features')}
+                  className="w-full sm:w-auto border border-white/30 text-white/90 hover:text-white hover:border-white/60 px-7 py-3.5 rounded-xl text-base font-medium transition-colors"
+                >
+                  Explore Features
+                </button>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="mt-10 flex flex-wrap items-center justify-center gap-6 text-sm text-white/80"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-teal-300" />
+                  Trusted verification
+                </div>
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-blue-300" />
+                  Global deal flow
+                </div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-300" />
+                  Faster funding cycles
+                </div>
+              </motion.div>
+            </motion.div>
+
+          </div>
         </div>
       </section>
 
