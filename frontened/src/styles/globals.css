@@ -1,5 +1,75 @@
 @import "tailwindcss";
 
+@theme {
+  --color-aurora-purple: #4B1F9E;
+  --color-aurora-violet: #8B5CF6;
+  --color-aurora-pink: #EC4899;
+  --color-aurora-cyan: #06B6D4;
+  --color-aurora-teal: #0d9488;
+  --color-aurora-blue: #2563eb;
+  --color-aurora-midnight: #1e1b4b;
+  --color-aurora-magenta: #9d174d;
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+@utility glass-dark {
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+@utility glass-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+@utility glass-panel-dark {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(17, 24, 39, 0.5) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+@utility aurora-text {
+  background: linear-gradient(to right, var(--color-aurora-purple), var(--color-aurora-pink), var(--color-aurora-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility bg-gradient-aurora-base {
+  background: linear-gradient(135deg, var(--color-aurora-purple) 0%, var(--color-aurora-violet) 33%, var(--color-aurora-pink) 66%, var(--color-aurora-cyan) 100%);
+}
+
+@utility bg-gradient-aurora-entrepreneur {
+  background: linear-gradient(135deg, var(--color-aurora-purple) 0%, var(--color-aurora-violet) 50%, var(--color-aurora-pink) 100%);
+}
+
+@utility bg-gradient-aurora-supplier {
+  background: linear-gradient(135deg, var(--color-aurora-teal) 0%, var(--color-aurora-cyan) 50%, var(--color-aurora-violet) 100%);
+}
+
+@utility bg-gradient-aurora-investor {
+  background: linear-gradient(135deg, var(--color-aurora-blue) 0%, var(--color-aurora-violet) 50%, var(--color-aurora-pink) 100%);
+}
+
+@utility bg-gradient-aurora-admin {
+  background: linear-gradient(135deg, var(--color-aurora-midnight) 0%, var(--color-aurora-purple) 50%, var(--color-aurora-magenta) 100%);
+}
+
 :root {
   --primary-blue: #0066cc;
   --primary-teal: #008b8b;
@@ -25,7 +95,7 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
