@@ -34,7 +34,7 @@ const fadeUpVariant = {
   visible: (custom: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: custom * 0.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+    transition: { delay: custom * 0.1, duration: 0.6 }
   })
 };
 
@@ -428,20 +428,20 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                   <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center mb-6">
                     <MessageSquare className="w-6 h-6 text-blue-400" />
                   </div>
-                  <h3 className="text-2xl font-bold !text-white mb-3">Real-time Collaboration</h3>
-                  <p className="!text-slate-400">
+                  <h3 className="text-2xl font-bold text-white! mb-3">Real-time Collaboration</h3>
+                  <p className="text-slate-400!">
                     Built-in chat, threaded discussions, and document sharing. Connect directly with investors or suppliers without leaving the platform.
                   </p>
                 </div>
                 <div className="flex-1 w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 backdrop-blur-sm">
                   <div className="flex gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 shrink-0"></div>
                     <div className="bg-slate-700 rounded-2xl rounded-tl-sm p-3 text-sm text-slate-200">
                       I reviewed the pitch deck. Let's schedule a call tomorrow.
                     </div>
                   </div>
                   <div className="flex gap-3 flex-row-reverse">
-                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex-shrink-0"></div>
+                     <div className="w-8 h-8 rounded-full bg-linear-to-br from-teal-400 to-teal-600 shrink-0"></div>
                      <div className="bg-blue-600 rounded-2xl rounded-tr-sm p-3 text-sm text-white">
                       Perfect. I'll send over the calendar invite now.
                     </div>
@@ -483,7 +483,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           
           <div className="relative max-w-4xl mx-auto">
             {/* Desktop connecting line */}
-            <div className="hidden md:block absolute top-10 left-[16.66%] right-[16.66%] h-[2px] bg-slate-300 -z-10"></div>
+            <div className="hidden md:block absolute top-10 left-[16.66%] right-[16.66%] h-0.5 bg-slate-300 -z-10"></div>
             
             <div className="grid md:grid-cols-3 gap-12">
                <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-[#f8fafc] px-4">
@@ -532,16 +532,16 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
               
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-purple-50 to-pink-100 text-pink-600 flex items-center justify-center mb-6 shadow-sm border border-pink-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-linear-to-br from-purple-50 to-pink-100 text-pink-600 flex items-center justify-center mb-6 shadow-sm border border-pink-100 group-hover:rotate-6 transition-transform">
                    <Target className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Entrepreneurs</h3>
               </div>
               <ul className="px-10 space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm font-medium">Verified Status</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Get VC Feedback</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Access Mentorship</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Connect with Investors</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 shrink-0" /> <span className="text-sm font-medium">Verified Status</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 shrink-0" /> <span className="text-sm">Get VC Feedback</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 shrink-0" /> <span className="text-sm">Access Mentorship</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 shrink-0" /> <span className="text-sm">Connect with Investors</span></li>
               </ul>
               <div className="bg-slate-50 mx-8 p-4 text-center rounded-xl mb-8 border border-slate-100">
                  <div className="text-sm font-bold text-slate-900 mb-1">$5 <span className="text-slate-500 font-normal">/ lifetime</span></div>
@@ -565,16 +565,16 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="absolute top-4 left-4 bg-cyan-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</div>
 
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-teal-50 via-cyan-50 to-purple-100 text-teal-600 flex items-center justify-center mb-6 shadow-sm border border-cyan-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-linear-to-br from-teal-50 via-cyan-50 to-purple-100 text-teal-600 flex items-center justify-center mb-6 shadow-sm border border-cyan-100 group-hover:rotate-6 transition-transform">
                    <Box className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Suppliers</h3>
               </div>
               <ul className="px-10 space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 flex-shrink-0" /> <span className="text-sm font-medium">Sell Software/Solutions</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 flex-shrink-0" /> <span className="text-sm">Manage Orders</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 flex-shrink-0" /> <span className="text-sm">Track Your Sales</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 flex-shrink-0" /> <span className="text-sm">Direct Access to Startups</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 shrink-0" /> <span className="text-sm font-medium">Sell Software/Solutions</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 shrink-0" /> <span className="text-sm">Manage Orders</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 shrink-0" /> <span className="text-sm">Track Your Sales</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-teal-500 shrink-0" /> <span className="text-sm">Direct Access to Startups</span></li>
               </ul>
               <div className="bg-slate-50 mx-8 p-4 text-center rounded-xl mb-8 border border-slate-100">
                  <div className="text-sm font-bold text-slate-900 mb-1">$25 <span className="text-slate-500 font-normal">/ lifetime</span></div>
@@ -597,16 +597,16 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
               
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-50 via-violet-50 to-pink-100 text-violet-600 flex items-center justify-center mb-6 shadow-sm border border-violet-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-linear-to-br from-blue-50 via-violet-50 to-pink-100 text-violet-600 flex items-center justify-center mb-6 shadow-sm border border-violet-100 group-hover:rotate-6 transition-transform">
                    <TrendingUp className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Investors</h3>
               </div>
               <ul className="px-10 space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm font-medium">Review Pitches</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Verify Details</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Analyze Financials</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Find Opportunities</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 shrink-0" /> <span className="text-sm font-medium">Review Pitches</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 shrink-0" /> <span className="text-sm">Verify Details</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 shrink-0" /> <span className="text-sm">Analyze Financials</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 shrink-0" /> <span className="text-sm">Find Opportunities</span></li>
               </ul>
               <div className="bg-slate-50 mx-8 p-4 text-center rounded-xl mb-8 border border-slate-100">
                  <div className="text-sm font-bold text-slate-900 mb-1">$25 <span className="text-slate-500 font-normal">/ lifetime</span></div>
@@ -617,21 +617,6 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* Trust Shield Banner */}
-      <section className="py-12 bg-[#f8fafc] pb-32">
-        <div className="container mx-auto px-6">
-           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="max-w-5xl mx-auto rounded-xl bg-gradient-to-r from-[#eef2f6] to-white border border-slate-200 p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 shadow-sm">
-             <div className="w-32 h-32 flex-shrink-0 bg-white shadow-sm border border-slate-100 rounded-full flex items-center justify-center">
-                <Shield className="w-16 h-16 text-blue-400" strokeWidth={1.5} />
-             </div>
-             <div className="text-center md:text-left">
-               <h3 className="text-2xl font-bold mb-3 text-slate-900">Academic-Grade, Trustworthy Platform</h3>
-               <p className="text-slate-600 leading-relaxed text-sm">Connect with industry leaders, secure transactions, and access risk-assessed opportunities with confidence.</p>
-             </div>
-           </motion.div>
         </div>
       </section>
 
@@ -650,7 +635,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             className="max-w-4xl mx-auto bg-white/60 border border-slate-200 rounded-3xl p-8 md:p-12 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center relative overflow-hidden"
           >
             {/* Subtle inner glow */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent pointer-events-none opacity-50"></div>
+            <div className="absolute inset-0 bg-linear-to-b from-white to-transparent pointer-events-none opacity-50"></div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -660,7 +645,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               className="relative z-10"
             >
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-                Ready to Scale <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-blue-600">Your Journey?</span>
+                Ready to Scale <span className="text-transparent bg-clip-text bg-linear-to-r from-teal-500 to-blue-600">Your Journey?</span>
               </h2>
             </motion.div>
 
@@ -683,7 +668,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             >
               <button 
                 onClick={onGetStarted} 
-                className="w-full sm:w-auto bg-gradient-to-r from-[#00a3a3] to-teal-500 hover:from-teal-400 hover:to-teal-400 text-white px-6 py-3 rounded-xl text-base font-medium transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,163,163,0.4)] hover:shadow-[0_12px_25px_-8px_rgba(0,163,163,0.6)] flex items-center justify-center gap-2 group transform hover:-translate-y-1"
+                className="w-full sm:w-auto bg-linear-to-r from-[#00a3a3] to-teal-500 hover:from-teal-400 hover:to-teal-400 text-white px-6 py-3 rounded-xl text-base font-medium transition-all duration-300 shadow-[0_8px_20px_-6px_rgba(0,163,163,0.4)] hover:shadow-[0_12px_25px_-8px_rgba(0,163,163,0.6)] flex items-center justify-center gap-2 group transform hover:-translate-y-1"
               >
                 Create Your Account 
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -724,28 +709,10 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       {/* Footer */}
       <footer className="bg-[#0f172a] pt-16 pb-8">
         <div className="container mx-auto px-6">
-          {/* Newsletter Row */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6 pb-12 border-b border-slate-800 mb-12">
-            <div>
-              <h3 className="text-xl font-bold text-white mb-2">Stay Updated</h3>
-              <p className="text-slate-400 text-sm">Subscribe to the latest updates, tips, and insights for growing your business.</p>
-            </div>
-            <div className="flex w-full md:w-auto gap-2">
-              <div className="relative w-full md:w-80">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input type="email" placeholder="Enter your email" className="w-full bg-[#1e293b] border border-slate-700 text-white rounded pl-10 pr-4 py-2.5 focus:outline-none focus:border-teal-500" />
-              </div>
-              <button className="bg-[#008b8b] hover:bg-teal-600 text-white px-6 py-2.5 rounded font-medium transition-colors flex items-center gap-2 flex-shrink-0">
-                <Send className="w-4 h-4" /> Subscribe
-              </button>
-            </div>
-          </div>
-
           {/* Links Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12 pb-12 border-b border-slate-800">
             <div className="lg:col-span-2">
                <div className="flex items-center gap-2 mb-6">
-                  <div className="w-8 h-8 rounded bg-gradient-to-tr from-[#0066cc] to-[#008b8b] flex items-center justify-center text-white font-bold text-sm">SL</div>
                   <span className="text-lg font-bold text-white">Startup LaunchPad</span>
                 </div>
                 <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
@@ -807,21 +774,21 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           {/* Contact Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center flex-shrink-0 text-teal-400"><Mail className="w-5 h-5" /></div>
+              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-teal-400"><Mail className="w-5 h-5" /></div>
               <div>
                 <div className="text-white text-sm font-medium mb-1">Email Us</div>
                 <div className="text-slate-400 text-sm">support@startuplaunchpad.com</div>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center flex-shrink-0 text-blue-400"><Phone className="w-5 h-5" /></div>
+              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-blue-400"><Phone className="w-5 h-5" /></div>
               <div>
                 <div className="text-white text-sm font-medium mb-1">Call Us</div>
                 <div className="text-slate-400 text-sm">+34 50 33976</div>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center flex-shrink-0 text-purple-400"><MapPin className="w-5 h-5" /></div>
+              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-purple-400"><MapPin className="w-5 h-5" /></div>
               <div>
                 <div className="text-white text-sm font-medium mb-1">Visit Us</div>
                 <div className="text-slate-400 text-sm">123 Innovation Ave, Tech City, TC 10010</div>

@@ -19,7 +19,7 @@ interface Product {
 export const ProductManagement = () => {
   const { addNotification } = useNotifications();
   const { user } = useAuth();
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+  const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -88,28 +88,28 @@ export const ProductManagement = () => {
       });
 
       setProducts([product, ...products]);
+      setShowModal(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: 0,
+        category: '',
+        image: '',
+        imageUrl: '',
+        imageName: '',
+        features: [],
+      });
+      setImageFile(null);
+
+      addNotification({
+        type: 'general',
+        title: 'Product Added',
+        message: `${product.name} has been added to your catalog`,
+      });
     } catch (e) {
       alert('Failed to create product. Please try again.');
       return;
     }
-    setShowModal(false);
-    setNewProduct({
-      name: '',
-      description: '',
-      price: 0,
-      category: '',
-      image: '',
-      imageUrl: '',
-      imageName: '',
-      features: [],
-    });
-    setImageFile(null);
-
-    addNotification({
-      type: 'general',
-      title: 'Product Added',
-      message: `${product.name} has been added to your catalog`,
-    });
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -162,29 +162,29 @@ export const ProductManagement = () => {
       });
 
       setProducts(products.map((p) => (p.id === editingProduct.id ? updatedProduct : p)));
+      setShowEditModal(false);
+      setEditingProduct(null);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: 0,
+        category: '',
+        image: '',
+        imageUrl: '',
+        imageName: '',
+        features: [],
+      });
+      setImageFile(null);
+
+      addNotification({
+        type: 'general',
+        title: 'Product Updated',
+        message: `${updatedProduct.name} has been updated in your catalog`,
+      });
     } catch (e) {
       alert('Failed to update product. Please try again.');
       return;
     }
-    setShowEditModal(false);
-    setEditingProduct(null);
-    setNewProduct({
-      name: '',
-      description: '',
-      price: 0,
-      category: '',
-      image: '',
-      imageUrl: '',
-      imageName: '',
-      features: [],
-    });
-    setImageFile(null);
-
-    addNotification({
-      type: 'general',
-      title: 'Product Updated',
-      message: `${updatedProduct.name} has been updated in your catalog`,
-    });
   };
 
   return (
