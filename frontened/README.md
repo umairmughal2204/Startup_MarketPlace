@@ -1,5 +1,5 @@
 
-  # Startup Launchpad Marketplace
+  # Startup Launchpad Marketplace App
 
   This is a code bundle for Startup Launchpad Marketplace. The original project is available at https://www.figma.com/design/RZ7MS6FWCNrTs0ChH5FyMg/Startup-Launchpad-Marketplace.
 
