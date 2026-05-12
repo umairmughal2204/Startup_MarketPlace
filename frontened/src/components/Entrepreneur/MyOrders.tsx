@@ -49,11 +49,11 @@ export const MyOrders = () => {
       case 'Pending':
         return <Clock className="w-5 h-5 text-gray-500" />;
       case 'Processing':
-        return <Package className="w-5 h-5 text-[#0066cc]" />;
+        return <Package className="w-5 h-5 text-pink-600" />;
       case 'Shipped':
-        return <Truck className="w-5 h-5 text-[#0088dd]" />;
+        return <Truck className="w-5 h-5 text-violet-600" />;
       case 'Delivered':
-        return <CheckCircle className="w-5 h-5 text-[#00aaee]" />;
+        return <CheckCircle className="w-5 h-5 text-fuchsia-600" />;
       default:
         return null;
     }
@@ -64,11 +64,11 @@ export const MyOrders = () => {
       case 'Pending':
         return 'bg-gray-100 text-gray-800';
       case 'Processing':
-        return 'bg-blue-100 text-[#0066cc]';
+        return 'bg-pink-100 text-pink-700';
       case 'Shipped':
-        return 'bg-blue-50 text-[#0088dd]';
+        return 'bg-violet-100 text-violet-700';
       case 'Delivered':
-        return 'bg-blue-50 text-[#00aaee]';
+        return 'bg-fuchsia-100 text-fuchsia-700';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -87,26 +87,26 @@ export const MyOrders = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="text-3xl font-bold text-gray-900 mb-1">
             {orderStats.total}
           </div>
           <div className="text-sm text-gray-600">Total Orders</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#0066cc] mb-1">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-pink-600 mb-1">
             {orderStats.processing}
           </div>
           <div className="text-sm text-gray-600">Processing</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#0088dd] mb-1">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-violet-600 mb-1">
             {orderStats.shipped}
           </div>
           <div className="text-sm text-gray-600">Shipped</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#00aaee] mb-1">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-fuchsia-600 mb-1">
             {orderStats.delivered}
           </div>
           <div className="text-sm text-gray-600">Delivered</div>
@@ -114,13 +114,13 @@ export const MyOrders = () => {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-pink-100">
           <h2 className="text-xl font-bold">Order History</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-pink-50/70">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Order ID
@@ -168,7 +168,7 @@ export const MyOrders = () => {
                 </tr>
               )}
               {!isLoading && !error && orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
+                <tr key={order.id} className="hover:bg-pink-50/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{order.id}</div>
                     <div className="text-sm text-gray-500">

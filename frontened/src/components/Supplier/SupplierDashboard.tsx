@@ -39,7 +39,7 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-cyan-50 via-white to-violet-50">
       <Sidebar
         role="Supplier"
         userName={userName}
@@ -51,10 +51,13 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
 
       <div className="lg:ml-64 flex-1 w-full">
         {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 pl-16 pr-4 lg:pl-8 sm:px-6 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-30">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-            {menuItems.find((item) => item.id === currentPage)?.label}
-          </h1>
+        <div className="bg-white/85 backdrop-blur-xl border-b border-cyan-100 pl-16 pr-4 lg:pl-8 sm:px-6 lg:px-8 py-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-teal-600">Supplier Portal</div>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-950 truncate">
+              {menuItems.find((item) => item.id === currentPage)?.label}
+            </h1>
+          </div>
           <NotificationCenter />
         </div>
 

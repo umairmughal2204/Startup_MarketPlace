@@ -48,6 +48,21 @@ const staggerContainer = {
   }
 };
 
+const roleThemes = [
+  {
+    label: "an Entrepreneur",
+    gradient: "linear-gradient(135deg, #8B5CF6 0%, #EC4899 62%, #f472b6 100%)"
+  },
+  {
+    label: "a Supplier",
+    gradient: "linear-gradient(135deg, #0d9488 0%, #06B6D4 48%, #8B5CF6 100%)"
+  },
+  {
+    label: "an Investor",
+    gradient: "linear-gradient(135deg, #2563eb 0%, #8B5CF6 52%, #EC4899 100%)"
+  }
+];
+
 const CircuitBoardDecoration = ({ side }: { side: 'left' | 'right' }) => {
   const isLeft = side === 'left';
   const circuitLines = isLeft ? [
@@ -95,11 +110,11 @@ const CircuitBoardDecoration = ({ side }: { side: 'left' | 'right' }) => {
 
 const AnimatedRoleText = () => {
   const [index, setIndex] = useState(0);
-  const roles = ["an Entrepreneur", "a Supplier", "an Investor"];
+  const activeRole = roleThemes[index];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % roles.length);
+      setIndex((prev) => (prev + 1) % roleThemes.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -113,9 +128,14 @@ const AnimatedRoleText = () => {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -20, opacity: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
-          className="inline-block whitespace-nowrap text-white/70"
+          className="inline-block whitespace-nowrap bg-clip-text text-transparent"
+          style={{
+            backgroundImage: activeRole.gradient,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}
         >
-          {roles[index]}
+          {activeRole.label}
         </motion.span>
       </AnimatePresence>
     </span>
@@ -506,29 +526,29 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
               transition={{ delay: 0.1 }} 
-              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
+              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-pink-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
             >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-aurora-entrepreneur"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-pink-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
               
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 flex items-center justify-center mb-6 shadow-sm border border-blue-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-purple-50 to-pink-100 text-pink-600 flex items-center justify-center mb-6 shadow-sm border border-pink-100 group-hover:rotate-6 transition-transform">
                    <Target className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Entrepreneurs</h3>
               </div>
               <ul className="px-10 space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-blue-500 flex-shrink-0" /> <span className="text-sm font-medium">Verified Status</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-blue-500 flex-shrink-0" /> <span className="text-sm">Get VC Feedback</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-blue-500 flex-shrink-0" /> <span className="text-sm">Access Mentorship</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-blue-500 flex-shrink-0" /> <span className="text-sm">Connect with Investors</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm font-medium">Verified Status</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Get VC Feedback</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Access Mentorship</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-pink-500 flex-shrink-0" /> <span className="text-sm">Connect with Investors</span></li>
               </ul>
               <div className="bg-slate-50 mx-8 p-4 text-center rounded-xl mb-8 border border-slate-100">
                  <div className="text-sm font-bold text-slate-900 mb-1">$5 <span className="text-slate-500 font-normal">/ lifetime</span></div>
                  <div className="text-xs text-slate-500">Verified Entrepreneur Status</div>
               </div>
               <div className="px-8">
-                <button onClick={onGetStarted} className="w-full py-3 bg-white border-2 border-blue-600 text-blue-600 rounded-xl font-semibold hover:bg-blue-600 hover:text-white transition-colors duration-300">Join as Entrepreneur</button>
+                <button onClick={onGetStarted} className="w-full py-3 bg-white border-2 border-pink-500 text-pink-600 rounded-xl font-semibold hover:bg-gradient-aurora-entrepreneur hover:text-white hover:border-pink-500 transition-colors duration-300">Join as Entrepreneur</button>
               </div>
             </motion.div>
 
@@ -538,14 +558,14 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
               transition={{ delay: 0.2 }} 
-              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-teal-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group scale-105 z-10"
+              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-cyan-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group scale-105 z-10"
             >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-teal-400 to-teal-600"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
-              <div className="absolute top-4 left-4 bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</div>
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-aurora-supplier"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+              <div className="absolute top-4 left-4 bg-cyan-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</div>
 
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 flex items-center justify-center mb-6 shadow-sm border border-teal-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-teal-50 via-cyan-50 to-purple-100 text-teal-600 flex items-center justify-center mb-6 shadow-sm border border-cyan-100 group-hover:rotate-6 transition-transform">
                    <Box className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Suppliers</h3>
@@ -561,7 +581,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
                  <div className="text-xs text-slate-500">Premium Supplier Access</div>
               </div>
               <div className="px-8">
-                <button onClick={onGetStarted} className="w-full py-3 bg-teal-600 border-2 border-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 hover:border-teal-700 shadow-md shadow-teal-500/30 transition-all duration-300">Join as Supplier</button>
+                <button onClick={onGetStarted} className="w-full py-3 bg-gradient-aurora-supplier border-2 border-cyan-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/30 shadow-md shadow-teal-500/30 transition-all duration-300">Join as Supplier</button>
               </div>
             </motion.div>
 
@@ -571,29 +591,29 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
               whileInView={{ opacity: 1, y: 0 }} 
               viewport={{ once: true }} 
               transition={{ delay: 0.3 }} 
-              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
+              className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-violet-100 overflow-hidden flex flex-col relative pt-12 pb-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 group"
             >
-              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
+              <div className="absolute top-0 inset-x-0 h-2 bg-gradient-aurora-investor"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-bl-full -z-10 group-hover:scale-110 transition-transform"></div>
               
               <div className="text-center mb-8 px-8">
-                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 text-indigo-600 flex items-center justify-center mb-6 shadow-sm border border-indigo-100 group-hover:rotate-6 transition-transform">
+                 <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-50 via-violet-50 to-pink-100 text-violet-600 flex items-center justify-center mb-6 shadow-sm border border-violet-100 group-hover:rotate-6 transition-transform">
                    <TrendingUp className="w-10 h-10" strokeWidth={1.5} />
                  </div>
                  <h3 className="text-2xl font-bold text-slate-900">Investors</h3>
               </div>
               <ul className="px-10 space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-indigo-500 flex-shrink-0" /> <span className="text-sm font-medium">Review Pitches</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-indigo-500 flex-shrink-0" /> <span className="text-sm">Verify Details</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-indigo-500 flex-shrink-0" /> <span className="text-sm">Analyze Financials</span></li>
-                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-indigo-500 flex-shrink-0" /> <span className="text-sm">Find Opportunities</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm font-medium">Review Pitches</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Verify Details</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Analyze Financials</span></li>
+                <li className="flex items-center gap-3 text-slate-700"><Check className="w-5 h-5 text-violet-500 flex-shrink-0" /> <span className="text-sm">Find Opportunities</span></li>
               </ul>
               <div className="bg-slate-50 mx-8 p-4 text-center rounded-xl mb-8 border border-slate-100">
                  <div className="text-sm font-bold text-slate-900 mb-1">$25 <span className="text-slate-500 font-normal">/ lifetime</span></div>
                  <div className="text-xs text-slate-500">Full Investment Access</div>
               </div>
               <div className="px-8">
-                <button onClick={onGetStarted} className="w-full py-3 bg-white border-2 border-indigo-600 text-indigo-600 rounded-xl font-semibold hover:bg-indigo-600 hover:text-white transition-colors duration-300">Join as Investor</button>
+                <button onClick={onGetStarted} className="w-full py-3 bg-white border-2 border-violet-600 text-violet-600 rounded-xl font-semibold hover:bg-gradient-aurora-investor hover:text-white hover:border-violet-600 transition-colors duration-300">Join as Investor</button>
               </div>
             </motion.div>
           </div>

@@ -108,14 +108,14 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
       {/* Back Button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-[#0066cc] hover:text-[#004080] font-semibold transition"
+        className="flex items-center gap-2 text-pink-600 hover:text-pink-700 font-semibold transition"
       >
         <ArrowLeft className="w-5 h-5" />
         Back to Marketplace
       </button>
 
       {/* Product Detail Card */}
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-white rounded-2xl border border-pink-100 shadow-lg overflow-hidden">
         <div className="grid md:grid-cols-2 gap-8 p-8">
           {/* Product Image */}
           <div className="space-y-4">
@@ -126,13 +126,13 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
             />
             
             {/* Supplier Info */}
-            <div className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div className="bg-pink-50/50 rounded-2xl p-5 border border-pink-100">
               <p className="text-sm font-semibold text-gray-700 mb-3">Sold by:</p>
-              <p className="text-xl font-bold text-[#0066cc] mb-1">{productData.supplier}</p>
+              <p className="text-xl font-bold text-pink-600 mb-1">{productData.supplier}</p>
               <p className="text-sm text-gray-600 mb-4">{productData.supplierCompany}</p>
               <button
                 onClick={handleMessageSupplier}
-                className="w-full bg-[#0066cc] text-white py-2.5 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                className="w-full bg-gradient-aurora-entrepreneur text-white py-2.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center justify-center gap-2"
               >
                 <MessageCircle className="w-5 h-5" />
                 Message Supplier
@@ -145,7 +145,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
             <div>
               <div className="flex items-start justify-between mb-2">
                 <h1 className="text-3xl font-bold text-gray-900">{productData.name}</h1>
-                <span className="bg-blue-100 text-[#0066cc] text-sm px-3 py-1 rounded-full font-semibold">
+                <span className="bg-pink-100 text-pink-700 text-sm px-3 py-1 rounded-full font-semibold">
                   {productData.category}
                 </span>
               </div>
@@ -165,7 +165,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
             <div className="border-t border-b border-gray-200 py-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-4xl font-bold text-[#0066cc]">${productData.price}</p>
+                  <p className="text-4xl font-bold text-pink-600">${productData.price}</p>
                   <p className="text-sm text-gray-500 mt-1">Single User License</p>
                 </div>
                 <div className="text-right">
@@ -178,7 +178,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
             <div className="space-y-3">
               <button
                 onClick={handleOpenPaymentModal}
-                className="w-full bg-[#0066cc] text-white py-4 rounded-lg font-bold text-lg hover:bg-[#004080] transition flex items-center justify-center gap-2 shadow-lg"
+                className="w-full bg-gradient-aurora-entrepreneur text-white py-4 rounded-xl font-bold text-lg hover:shadow-xl hover:shadow-pink-500/25 transition flex items-center justify-center gap-2 shadow-lg"
               >
                 <ShoppingCart className="w-6 h-6" />
                 Place Order - ${totalPrice}
@@ -192,12 +192,12 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
       </div>
 
       {/* Features Section */}
-      <div className="bg-white rounded-lg shadow p-8">
+      <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-8">
         <h2 className="text-2xl font-bold mb-6">Product Features</h2>
         <div className="grid md:grid-cols-2 gap-4">
           {productData.features.map((feature, index) => (
             <div key={index} className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-[#0066cc] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-6 h-6 bg-gradient-aurora-entrepreneur rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                 <span className="text-white text-xs">✓</span>
               </div>
               <p className="text-gray-700">{feature}</p>
@@ -208,30 +208,30 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
 
       {/* Additional Information */}
       <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Download className="w-6 h-6 text-[#0066cc]" />
+            <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center">
+              <Download className="w-6 h-6 text-pink-600" />
             </div>
             <h3 className="font-bold text-lg">Instant Access</h3>
           </div>
           <p className="text-gray-600">Download and use immediately after purchase</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Shield className="w-6 h-6 text-[#0066cc]" />
+            <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center">
+              <Shield className="w-6 h-6 text-pink-600" />
             </div>
             <h3 className="font-bold text-lg">Support</h3>
           </div>
           <p className="text-gray-600">24/7 customer support and documentation</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <Package className="w-6 h-6 text-[#0066cc]" />
+            <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center">
+              <Package className="w-6 h-6 text-pink-600" />
             </div>
             <h3 className="font-bold text-lg">Secure Payment</h3>
           </div>
@@ -276,7 +276,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                 
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
-                  <span className="font-bold text-2xl text-[#0066cc]">${totalPrice.toFixed(2)}</span>
+                  <span className="font-bold text-2xl text-pink-600">${totalPrice.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -290,7 +290,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                 </button>
                 <button
                   onClick={handlePlaceOrder}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-aurora-entrepreneur text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Confirm Order
@@ -331,7 +331,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                     setOrderSuccess(false);
                     onBack();
                   }}
-                  className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition"
+                  className="px-6 py-2 bg-gradient-aurora-entrepreneur text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition"
                 >
                   OK
                 </button>

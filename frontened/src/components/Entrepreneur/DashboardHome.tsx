@@ -92,10 +92,10 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       : '0.0';
 
     return [
-      { label: 'Ideas Submitted', value: String(totalIdeas), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-      { label: 'Products Ordered', value: '0', icon: <ShoppingCart className="w-6 h-6" />, color: 'bg-[#0088dd]' },
-      { label: 'Investor Feedback', value: String(feedbackTotal), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#00aaee]' },
-      { label: 'Market Score', value: `${averageScore}/10`, icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#0099dd]' },
+      { label: 'Ideas Submitted', value: String(totalIdeas), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-gradient-aurora-entrepreneur' },
+      { label: 'Products Ordered', value: '0', icon: <ShoppingCart className="w-6 h-6" />, color: 'bg-gradient-to-br from-violet-500 to-pink-500' },
+      { label: 'Investor Feedback', value: String(feedbackTotal), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-gradient-to-br from-pink-500 to-fuchsia-500' },
+      { label: 'Market Score', value: `${averageScore}/10`, icon: <TrendingUp className="w-6 h-6" />, color: 'bg-gradient-to-br from-purple-600 to-pink-500' },
     ];
   }, [ideas]);
 
@@ -176,26 +176,26 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
+          <div key={index} className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6 hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-100 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.color} text-white p-3 rounded-lg`}>
+              <div className={`${stat.color} text-white p-3 rounded-2xl shadow-lg shadow-pink-500/20`}>
                 {stat.icon}
               </div>
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
-            <div className="text-sm text-gray-600">{stat.label}</div>
+            <div className="text-3xl font-bold text-slate-950 mb-1">{stat.value}</div>
+            <div className="text-sm text-slate-500">{stat.label}</div>
           </div>
         ))}
       </div>
 
       {/* Recent Ideas */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold">Recent Ideas</h2>
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-pink-100">
+          <h2 className="text-xl font-bold text-slate-950">Recent Ideas</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-pink-50/70">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Title
@@ -236,19 +236,19 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
               {!isLoading && !error && recentIdeas.map((idea) => (
                 <tr 
                   key={idea.id} 
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="hover:bg-pink-50/50 cursor-pointer transition-colors"
                   onClick={() => openIdea(idea.id)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900 hover:text-[#0066cc]">{idea.title}</div>
+                    <div className="font-medium text-gray-900 hover:text-pink-600">{idea.title}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         idea.status === 'Approved'
-                          ? 'bg-blue-100 text-[#0066cc]'
+                          ? 'bg-pink-100 text-pink-700'
                           : idea.status === 'Under Review'
-                          ? 'bg-blue-50 text-[#0088dd]'
+                          ? 'bg-violet-100 text-violet-700'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
@@ -268,27 +268,27 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-[#0066cc] to-[#0088dd] text-white rounded-lg shadow p-6">
+        <div className="bg-gradient-aurora-entrepreneur text-white rounded-2xl shadow-lg shadow-pink-500/20 p-6">
           <h3 className="text-xl font-bold mb-2 text-white">Submit New Idea</h3>
-          <p className="mb-4 text-blue-100">
+          <p className="mb-4 text-white/80">
             Have a brilliant startup concept? Submit it now and get AI-powered feedback instantly.
           </p>
           <button
             onClick={() => onNavigate?.('submit-idea')}
-            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+            className="bg-white text-pink-600 px-6 py-2 rounded-xl font-semibold hover:bg-pink-50 transition"
           >
             Get Started
           </button>
         </div>
 
-        <div className="bg-white border-2 border-[#0066cc] rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold mb-2">Browse Marketplace</h3>
+        <div className="bg-white/90 border border-pink-200 rounded-2xl shadow-sm p-6">
+          <h3 className="text-xl font-bold mb-2 text-slate-950">Browse Marketplace</h3>
           <p className="mb-4 text-gray-600">
             Discover products and services from verified suppliers to bring your idea to life.
           </p>
           <button
             onClick={() => onNavigate?.('market')}
-            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+            className="bg-gradient-aurora-entrepreneur text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition"
           >
             Explore Products
           </button>
@@ -298,7 +298,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       {/* Idea Detail Popup Modal */}
       {selectedIdea && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-900">{selectedIdea.title}</h2>
@@ -319,7 +319,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                     selectedIdea.status === 'Approved'
                       ? 'bg-green-100 text-green-700'
                       : selectedIdea.status === 'Under Review'
-                      ? 'bg-blue-100 text-blue-700'
+                      ? 'bg-violet-100 text-violet-700'
                       : selectedIdea.status === 'Rejected'
                       ? 'bg-red-100 text-red-700'
                       : 'bg-gray-100 text-gray-700'
@@ -335,7 +335,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
               </div>
 
               {/* AI Score Section */}
-              <div className="bg-gradient-to-br from-[#0066cc] to-[#0088dd] rounded-xl p-6 text-white">
+              <div className="bg-gradient-aurora-entrepreneur rounded-2xl p-6 text-white">
                 <div className="flex items-center gap-3 mb-4">
                   <Target className="w-8 h-8" />
                   <h3 className="text-xl font-bold">AI Analysis Score</h3>
@@ -374,7 +374,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
               {/* Document */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <FileText className="w-5 h-5 text-[#0066cc]" />
+                  <FileText className="w-5 h-5 text-pink-600" />
                   <h4 className="text-lg font-semibold text-gray-900">Document</h4>
                 </div>
                 {selectedIdea.documentUrl ? (
@@ -382,7 +382,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                     href={`${API_BASE}${selectedIdea.documentUrl}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[#0066cc] hover:underline font-medium"
+                    className="text-pink-600 hover:underline font-medium"
                   >
                     {selectedIdea.documentName || 'View Document'}
                   </a>
@@ -406,7 +406,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                         type="text"
                         value={editForm.title}
                         onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                       />
                     </div>
                     <div>
@@ -414,7 +414,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                       <select
                         value={editForm.category}
                         onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                       >
                         {categories.map((cat) => (
                           <option key={cat} value={cat}>
@@ -428,7 +428,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                       <select
                         value={editForm.status}
                         onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                       >
                         <option value="Pending">Pending</option>
                         <option value="Under Review">Under Review</option>
@@ -441,7 +441,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                       <textarea
                         value={editForm.description}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                         rows={4}
                       />
                     </div>
@@ -474,7 +474,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                           type="file"
                           accept=".pdf,.docx"
                           onChange={(e) => setEditForm({ ...editForm, file: e.target.files?.[0] || null })}
-                          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100"
                         />
                       </div>
                     </div>
@@ -484,7 +484,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
 
               {/* Feedback Count */}
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <MessageSquare className="w-6 h-6 text-[#0066cc]" />
+                <MessageSquare className="w-6 h-6 text-pink-600" />
                 <div>
                   <span className="text-2xl font-bold text-gray-900">{selectedIdea.feedbackCount || 0}</span>
                   <span className="text-gray-600 ml-2">Investor Feedback{selectedIdea.feedbackCount !== 1 ? 's' : ''}</span>
@@ -498,7 +498,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                 <>
                   <button
                     onClick={startEditing}
-                    className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition flex items-center gap-2"
+                    className="px-6 py-2 bg-gradient-aurora-entrepreneur text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center gap-2"
                   >
                     <Edit3 className="w-4 h-4" />
                     Update
@@ -517,7 +517,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                   <button
                     onClick={handleUpdate}
                     disabled={isSaving}
-                    className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition flex items-center gap-2 disabled:opacity-60"
+                    className="px-6 py-2 bg-gradient-aurora-entrepreneur text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center gap-2 disabled:opacity-60"
                   >
                     <Save className="w-4 h-4" />
                     {isSaving ? 'Saving...' : 'Save Changes'}

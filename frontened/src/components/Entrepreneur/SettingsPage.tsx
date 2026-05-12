@@ -6,8 +6,43 @@ interface SettingsPageProps {
   userName: string;
 }
 
+const settingsThemes: Record<string, {
+  panel: string;
+  icon: string;
+  button: string;
+  input: string;
+  info: string;
+  link: string;
+}> = {
+  Entrepreneur: {
+    panel: 'from-pink-50 to-violet-50 border-pink-200',
+    icon: 'text-pink-600',
+    button: 'bg-gradient-aurora-entrepreneur hover:shadow-pink-500/25',
+    input: 'focus:ring-pink-200 focus:border-pink-400',
+    info: 'text-pink-700 bg-pink-50 border-pink-200',
+    link: 'text-pink-600',
+  },
+  Supplier: {
+    panel: 'from-cyan-50 to-violet-50 border-cyan-200',
+    icon: 'text-teal-600',
+    button: 'bg-gradient-aurora-supplier hover:shadow-cyan-500/25',
+    input: 'focus:ring-cyan-200 focus:border-cyan-400',
+    info: 'text-teal-700 bg-cyan-50 border-cyan-200',
+    link: 'text-teal-600',
+  },
+  Investor: {
+    panel: 'from-blue-50 to-pink-50 border-violet-200',
+    icon: 'text-violet-600',
+    button: 'bg-gradient-aurora-investor hover:shadow-violet-500/25',
+    input: 'focus:ring-violet-200 focus:border-violet-400',
+    info: 'text-violet-700 bg-violet-50 border-violet-200',
+    link: 'text-violet-600',
+  },
+};
+
 export const SettingsPage = ({ userName }: SettingsPageProps) => {
   const { user, updateProfile, updatePassword } = useAuth();
+  const theme = settingsThemes[user?.role || 'Entrepreneur'] || settingsThemes.Entrepreneur;
   const [profileForm, setProfileForm] = useState({
     name: user?.name || userName,
     email: user?.email || '',
@@ -88,8 +123,8 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {user?.professionalDetails && (
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-[#0066cc]">
+        <div className={`bg-gradient-to-r ${theme.panel} border rounded-2xl shadow-sm p-6`}>
+          <h2 className={`text-xl font-bold mb-6 flex items-center gap-2 ${theme.icon}`}>
             <Building2 className="w-6 h-6" />
             Professional Information
           </h2>
@@ -217,7 +252,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               </>
             )}
           </div>
-          <div className="mt-4 text-xs text-blue-700 bg-blue-50 rounded p-3 border border-blue-200">
+          <div className={`mt-4 text-xs rounded-xl p-3 border ${theme.info}`}>
             {user.isVerified ? (
               <>
                 <strong>✓ Verified Account:</strong> Your professional details have been verified by our admin team.
@@ -243,9 +278,9 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <User className="w-6 h-6 text-[#0066cc]" />
+          <User className={`w-6 h-6 ${theme.icon}`} />
           Profile Settings
         </h2>
         <div className="space-y-4">
@@ -255,7 +290,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               type="text"
               value={profileForm.name}
               onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <div>
@@ -264,7 +299,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               type="email"
               value={profileForm.email}
               onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <div>
@@ -274,7 +309,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               value={profileForm.phone}
               onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })}
               placeholder="+1 (555) 000-0000"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <div>
@@ -284,7 +319,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               onChange={(event) =>
                 setProfileForm({ ...profileForm, profileVisibility: event.target.value as 'Public' | 'Private' })
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             >
               <option value="Public">Public</option>
               <option value="Private">Private</option>
@@ -292,16 +327,16 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
           </div>
           <button
             onClick={handleSaveProfile}
-            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg hover:bg-[#004080] transition"
+            className={`${theme.button} text-white px-6 py-2 rounded-xl hover:shadow-lg transition`}
           >
             Save Changes
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <Lock className="w-6 h-6 text-[#0066cc]" />
+          <Lock className={`w-6 h-6 ${theme.icon}`} />
           Change Password
         </h2>
         <div className="space-y-4">
@@ -313,7 +348,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               onChange={(event) =>
                 setPasswordForm({ ...passwordForm, currentPassword: event.target.value })
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <div>
@@ -322,7 +357,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               type="password"
               value={passwordForm.newPassword}
               onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <div>
@@ -333,21 +368,21 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               onChange={(event) =>
                 setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })
               }
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             />
           </div>
           <button
             onClick={handleUpdatePassword}
-            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg hover:bg-[#004080] transition"
+            className={`${theme.button} text-white px-6 py-2 rounded-xl hover:shadow-lg transition`}
           >
             Update Password
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <Shield className="w-6 h-6 text-[#0066cc]" />
+          <Shield className={`w-6 h-6 ${theme.icon}`} />
           Privacy & Security
         </h2>
         <div className="space-y-4">
@@ -356,7 +391,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               <div className="font-semibold text-gray-900">Two-Factor Authentication</div>
               <div className="text-sm text-gray-600">Add an extra layer of security</div>
             </div>
-            <button className="text-[#0066cc] hover:underline font-semibold">Enable</button>
+            <button className={`${theme.link} hover:underline font-semibold`}>Enable</button>
           </div>
           <div className="flex items-center justify-between">
             <div>
@@ -368,7 +403,7 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               onChange={(event) =>
                 setProfileForm({ ...profileForm, profileVisibility: event.target.value as 'Public' | 'Private' })
               }
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc]"
+              className={`px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
             >
               <option value="Public">Public</option>
               <option value="Private">Private</option>

@@ -40,10 +40,10 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
     const activeOrders = orders.filter((o: any) => o.status !== 'Delivered').length;
     const revenue = orders.reduce((sum: number, o: any) => sum + (o.price * o.quantity), 0);
     return [
-      { label: 'Total Products', value: String(totalProducts), icon: <Package className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-      { label: 'Active Orders', value: String(activeOrders), icon: <ShoppingBag className="w-6 h-6" />, color: 'bg-[#0088cc]' },
-      { label: 'Total Revenue', value: `$${revenue.toFixed(2)}`, icon: <DollarSign className="w-6 h-6" />, color: 'bg-[#0099dd]' },
-      { label: 'Growth Rate', value: '+0%', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
+      { label: 'Total Products', value: String(totalProducts), icon: <Package className="w-6 h-6" />, color: 'bg-gradient-aurora-supplier' },
+      { label: 'Active Orders', value: String(activeOrders), icon: <ShoppingBag className="w-6 h-6" />, color: 'bg-gradient-to-br from-teal-500 to-cyan-500' },
+      { label: 'Total Revenue', value: `$${revenue.toFixed(2)}`, icon: <DollarSign className="w-6 h-6" />, color: 'bg-gradient-to-br from-cyan-500 to-violet-500' },
+      { label: 'Growth Rate', value: '+0%', icon: <TrendingUp className="w-6 h-6" />, color: 'bg-gradient-to-br from-teal-500 to-violet-500' },
     ];
   }, [products, orders]);
 
@@ -68,9 +68,9 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
+          <div key={index} className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-6 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-100 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.color} text-white p-3 rounded-lg`}>
+              <div className={`${stat.color} text-white p-3 rounded-2xl shadow-lg shadow-cyan-500/20`}>
                 {stat.icon}
               </div>
             </div>
@@ -82,13 +82,13 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Recent Orders */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-cyan-100">
             <h2 className="text-xl font-bold">Recent Orders</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-cyan-50/70">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
                     Order ID
@@ -124,7 +124,7 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
                   </tr>
                 )}
                 {!isLoading && !error && recentOrders.map((order: any) => (
-                  <tr key={order.id} className="hover:bg-gray-50">
+                  <tr key={order.id} className="hover:bg-cyan-50/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">{order.id}</div>
                     </td>
@@ -136,11 +136,11 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
                           order.status === 'Shipped'
-                            ? 'bg-blue-50 text-[#0088cc]'
+                            ? 'bg-cyan-100 text-cyan-700'
                             : order.status === 'Processing'
-                            ? 'bg-blue-100 text-[#0066cc]'
+                            ? 'bg-teal-100 text-teal-700'
                             : order.status === 'Delivered'
-                            ? 'bg-blue-50 text-[#00aaee]'
+                            ? 'bg-violet-100 text-violet-700'
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >
@@ -155,8 +155,8 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-cyan-100">
             <h2 className="text-xl font-bold">Top Products</h2>
           </div>
           <div className="p-6 space-y-4">
@@ -171,7 +171,7 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
                   <div className="text-sm text-gray-500">{product.sales} sales</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-[#0066cc]">{product.revenue}</div>
+                  <div className="font-bold text-teal-600">{product.revenue}</div>
                 </div>
               </div>
             ))}
@@ -181,27 +181,27 @@ export const SupplierHome = ({ onNavigate }: SupplierHomeProps) => {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-[#0066cc] to-[#0088dd] text-white rounded-lg shadow p-6">
+        <div className="bg-gradient-aurora-supplier text-white rounded-2xl shadow-lg shadow-cyan-500/20 p-6">
           <h3 className="text-xl font-bold mb-2 text-white">Add New Product</h3>
-          <p className="mb-4 text-blue-100">
+          <p className="mb-4 text-white/80">
             List a new product or service to expand your offerings to entrepreneurs.
           </p>
           <button
             onClick={() => onNavigate?.('products')}
-            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+            className="bg-white text-teal-600 px-6 py-2 rounded-xl font-semibold hover:bg-cyan-50 transition"
           >
             Add Product
           </button>
         </div>
 
-        <div className="bg-white border-2 border-[#0066cc] rounded-lg shadow p-6">
+        <div className="bg-white/90 border border-cyan-200 rounded-2xl shadow-sm p-6">
           <h3 className="text-xl font-bold mb-2">Manage Orders</h3>
           <p className="mb-4 text-gray-600">
             Update order statuses and communicate with entrepreneurs about their purchases.
           </p>
           <button
             onClick={() => onNavigate?.('orders')}
-            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+            className="bg-gradient-aurora-supplier text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition"
           >
             View Orders
           </button>

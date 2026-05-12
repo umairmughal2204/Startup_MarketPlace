@@ -151,7 +151,7 @@ export const MarketPlace = () => {
   return (
     <div className="space-y-6">
       {/* Search and Filter Bar */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
         <div className="grid md:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -160,7 +160,7 @@ export const MarketPlace = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search products or suppliers..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
             />
           </div>
 
@@ -169,7 +169,7 @@ export const MarketPlace = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -184,13 +184,13 @@ export const MarketPlace = () => {
       {/* Products Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading && (
-          <div className="bg-white rounded-lg shadow p-6 text-gray-500">Loading products...</div>
+          <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-6 text-gray-500">Loading products...</div>
         )}
         {!isLoading && error && (
-          <div className="bg-white rounded-lg shadow p-6 text-red-600">{error}</div>
+          <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-6 text-red-600">{error}</div>
         )}
         {!isLoading && !error && filteredProducts.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-xl transition">
+          <div key={product.id} className="bg-white rounded-2xl border border-pink-100 shadow-sm overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:shadow-pink-100 transition-all">
             <img
               src={product.imageUrl ? `${API_BASE}${product.imageUrl}` : (product.image || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400')}
               alt={product.name}
@@ -199,7 +199,7 @@ export const MarketPlace = () => {
             <div className="p-6">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-bold text-lg">{product.name}</h3>
-                <span className="bg-blue-100 text-[#0066cc] text-xs px-2 py-1 rounded">
+                <span className="bg-pink-100 text-pink-700 text-xs px-2 py-1 rounded-full">
                   {product.category}
                 </span>
               </div>
@@ -214,20 +214,20 @@ export const MarketPlace = () => {
 
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-2xl font-bold text-[#0066cc]">${product.price}</div>
+                  <div className="text-2xl font-bold text-pink-600">${product.price}</div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <button
                   onClick={() => handleViewProduct(product)}
-                  className="w-full bg-white text-[#0066cc] border-2 border-[#0066cc] py-2.5 rounded-lg font-semibold hover:bg-[#0066cc] hover:text-white transition"
+                  className="w-full bg-white text-pink-600 border-2 border-pink-500 py-2.5 rounded-xl font-semibold hover:bg-pink-50 transition"
                 >
                   View Details
                 </button>
                 <button
                   onClick={() => handleOpenPaymentModal(product)}
-                  className="w-full bg-[#0066cc] text-white py-2.5 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-aurora-entrepreneur text-white py-2.5 rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Place Order
@@ -239,7 +239,7 @@ export const MarketPlace = () => {
       </div>
 
       {!isLoading && !error && filteredProducts.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-white rounded-2xl border border-pink-100 shadow-sm p-12 text-center">
           <p className="text-gray-500">No products found matching your criteria.</p>
         </div>
       )}
@@ -281,7 +281,7 @@ export const MarketPlace = () => {
                 
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
-                  <span className="font-bold text-2xl text-[#0066cc]">
+                  <span className="font-bold text-2xl text-pink-600">
                     ${(paymentModal.product.price * quantity).toFixed(2)}
                   </span>
                 </div>
@@ -297,7 +297,7 @@ export const MarketPlace = () => {
                 </button>
                 <button
                   onClick={handlePlaceOrder}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-aurora-entrepreneur text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition flex items-center justify-center gap-2"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   Confirm Order
@@ -332,7 +332,7 @@ export const MarketPlace = () => {
               <div className="flex justify-end">
                 <button
                   onClick={() => setOrderSuccess(null)}
-                  className="px-6 py-2 bg-[#0066cc] text-white rounded-lg font-semibold hover:bg-[#004080] transition"
+                  className="px-6 py-2 bg-gradient-aurora-entrepreneur text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/25 transition"
                 >
                   OK
                 </button>

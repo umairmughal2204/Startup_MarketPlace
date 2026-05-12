@@ -88,11 +88,11 @@ export const OrderManagement = () => {
       case 'Pending':
         return <Clock className="w-5 h-5 text-gray-500" />;
       case 'Processing':
-        return <Package className="w-5 h-5 text-[#0066cc]" />;
+        return <Package className="w-5 h-5 text-teal-600" />;
       case 'Shipped':
-        return <Truck className="w-5 h-5 text-[#0088dd]" />;
+        return <Truck className="w-5 h-5 text-cyan-600" />;
       case 'Delivered':
-        return <CheckCircle className="w-5 h-5 text-[#00aaee]" />;
+        return <CheckCircle className="w-5 h-5 text-violet-600" />;
       default:
         return null;
     }
@@ -103,11 +103,11 @@ export const OrderManagement = () => {
       case 'Pending':
         return 'bg-gray-100 text-gray-800';
       case 'Processing':
-        return 'bg-blue-100 text-[#0066cc]';
+        return 'bg-teal-100 text-teal-700';
       case 'Shipped':
-        return 'bg-blue-50 text-[#0088dd]';
+        return 'bg-cyan-100 text-cyan-700';
       case 'Delivered':
-        return 'bg-blue-50 text-[#00aaee]';
+        return 'bg-violet-100 text-violet-700';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -117,7 +117,7 @@ export const OrderManagement = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-6">
           <div className="text-3xl font-bold text-gray-900 mb-1">
             {statusCounts.Pending}
           </div>
@@ -126,8 +126,8 @@ export const OrderManagement = () => {
             Pending Orders
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-blue-600 mb-1">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-teal-600 mb-1">
             {statusCounts.Processing}
           </div>
           <div className="text-sm text-gray-600 flex items-center gap-2">
@@ -135,8 +135,8 @@ export const OrderManagement = () => {
             Processing
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#0088dd] mb-1">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-cyan-600 mb-1">
             {statusCounts.Shipped}
           </div>
           <div className="text-sm text-gray-600 flex items-center gap-2">
@@ -144,8 +144,8 @@ export const OrderManagement = () => {
             Shipped
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-3xl font-bold text-[#00aaee] mb-1">
+        <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-6">
+          <div className="text-3xl font-bold text-violet-600 mb-1">
             {statusCounts.Delivered}
           </div>
           <div className="text-sm text-gray-600 flex items-center gap-2">
@@ -156,7 +156,7 @@ export const OrderManagement = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -164,16 +164,16 @@ export const OrderManagement = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by order ID, entrepreneur, or product..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
           />
         </div>
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white/90 rounded-2xl border border-cyan-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className="bg-cyan-50/70">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   Order ID
@@ -218,7 +218,7 @@ export const OrderManagement = () => {
                 </tr>
               )}
               {!isLoading && !error && filteredOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
+                <tr key={order.id} className="hover:bg-cyan-50/50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900">{order.id}</div>
                     <div className="text-sm text-gray-500">
@@ -258,7 +258,7 @@ export const OrderManagement = () => {
                       onChange={(e) =>
                         handleStatusChange(order.id, e.target.value as Order['status'])
                       }
-                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                      className="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                     >
                       <option value="Pending">Pending</option>
                       <option value="Processing">Processing</option>

@@ -114,9 +114,9 @@ export const SubmitIdea = () => {
     <div className="max-w-6xl mx-auto">
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Submission Form */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-2">Submit Your Startup Idea</h2>
+            <h2 className="text-2xl font-bold mb-2 text-slate-950">Submit Your Startup Idea</h2>
             <p className="text-gray-600">
               Share your concept and receive instant AI-powered feedback on market fit and feasibility.
             </p>
@@ -131,7 +131,7 @@ export const SubmitIdea = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                 placeholder="e.g., AI-Powered Fitness App"
                 required
               />
@@ -144,7 +144,7 @@ export const SubmitIdea = () => {
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                 required
               >
                 <option value="">Select a category</option>
@@ -163,7 +163,7 @@ export const SubmitIdea = () => {
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
                 rows={6}
                 placeholder="Describe your startup idea, target market, and unique value proposition..."
                 required
@@ -174,7 +174,7 @@ export const SubmitIdea = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Upload Document (Optional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#0066cc] transition">
+              <div className="border-2 border-dashed border-pink-200 bg-pink-50/40 rounded-2xl p-6 text-center hover:border-pink-400 transition">
                 <input
                   type="file"
                   onChange={handleFileChange}
@@ -190,7 +190,7 @@ export const SubmitIdea = () => {
                     <>
                       <div className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2 mb-3">
                         <div className="flex items-center gap-3">
-                          <FileText className="w-8 h-8 text-[#0066cc]" />
+                          <FileText className="w-8 h-8 text-pink-600" />
                           <div className="text-left">
                             <p className="text-sm font-medium text-gray-900 truncate max-w-[220px]">
                               {formData.file.name}
@@ -234,7 +234,7 @@ export const SubmitIdea = () => {
               className={`w-full py-3 rounded-lg font-semibold transition ${
                 isSubmitting
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-[#0066cc] hover:bg-[#004080] text-white'
+                  : 'bg-gradient-aurora-entrepreneur hover:shadow-lg hover:shadow-pink-500/25 text-white'
               }`}
             >
               {isSubmitting ? 'Analyzing...' : 'Submit Idea'}
@@ -243,7 +243,7 @@ export const SubmitIdea = () => {
         </div>
 
         {/* AI Feedback Panel */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold mb-2">AI-Powered Feedback</h2>
             <p className="text-gray-600">
@@ -252,29 +252,29 @@ export const SubmitIdea = () => {
           </div>
 
           {!aiAnalysis ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-              <Lightbulb className="w-16 h-16 mb-4" />
+            <div className="flex flex-col items-center justify-center h-64 text-slate-400 rounded-2xl bg-gradient-to-br from-pink-50 to-violet-50 border border-pink-100">
+              <Lightbulb className="w-16 h-16 mb-4 text-pink-300" />
               <p className="text-center">Submit your idea to receive AI feedback</p>
             </div>
           ) : (
             <div className="space-y-6">
               {/* Scores */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-pink-50 rounded-2xl p-4 border border-pink-100">
                   <div className="flex items-center gap-2 mb-2">
-                    <Target className="w-5 h-5 text-[#0066cc]" />
+                    <Target className="w-5 h-5 text-pink-600" />
                     <span className="text-sm font-semibold text-gray-700">Market Fit</span>
                   </div>
-                  <div className="text-3xl font-bold text-[#0066cc]">
+                  <div className="text-3xl font-bold text-pink-600">
                     {aiAnalysis.marketFit}/10
                   </div>
                 </div>
-                <div className="bg-blue-50 rounded-lg p-4">
+                <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
                   <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-5 h-5 text-[#0088dd]" />
+                    <TrendingUp className="w-5 h-5 text-violet-600" />
                     <span className="text-sm font-semibold text-gray-700">Feasibility</span>
                   </div>
-                  <div className="text-3xl font-bold text-[#0088dd]">
+                  <div className="text-3xl font-bold text-violet-600">
                     {aiAnalysis.feasibility}/10
                   </div>
                 </div>
@@ -282,14 +282,14 @@ export const SubmitIdea = () => {
 
               {/* Strengths */}
               <div>
-                <h4 className="font-semibold text-[#0066cc] mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-pink-600 mb-3 flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
                   Strengths
                 </h4>
                 <ul className="space-y-2">
                   {aiAnalysis.strengths.map((strength, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-[#0066cc] mt-1">•</span>
+                      <span className="text-pink-600 mt-1">•</span>
                       <span>{strength}</span>
                     </li>
                   ))}
@@ -298,14 +298,14 @@ export const SubmitIdea = () => {
 
               {/* Suggestions */}
               <div>
-                <h4 className="font-semibold text-[#0066cc] mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-pink-600 mb-3 flex items-center gap-2">
                   <Lightbulb className="w-5 h-5" />
                   Suggestions
                 </h4>
                 <ul className="space-y-2">
                   {aiAnalysis.suggestions.map((suggestion, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-[#0066cc] mt-1">•</span>
+                      <span className="text-pink-600 mt-1">•</span>
                       <span>{suggestion}</span>
                     </li>
                   ))}
@@ -314,14 +314,14 @@ export const SubmitIdea = () => {
 
               {/* Concerns */}
               <div>
-                <h4 className="font-semibold text-[#0088dd] mb-3 flex items-center gap-2">
+                <h4 className="font-semibold text-violet-600 mb-3 flex items-center gap-2">
                   <Target className="w-5 h-5" />
                   Areas to Consider
                 </h4>
                 <ul className="space-y-2">
                   {aiAnalysis.concerns.map((concern, index) => (
                     <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
-                      <span className="text-[#0088dd] mt-1">•</span>
+                      <span className="text-violet-600 mt-1">•</span>
                       <span>{concern}</span>
                     </li>
                   ))}

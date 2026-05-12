@@ -197,7 +197,7 @@ export const ProductManagement = () => {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center gap-2"
+          className="bg-gradient-aurora-supplier text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Add Product
@@ -207,16 +207,16 @@ export const ProductManagement = () => {
       {/* Products Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading && (
-          <div className="bg-white rounded-lg shadow p-6 text-gray-500">Loading products...</div>
+          <div className="bg-white rounded-2xl border border-cyan-100 shadow-sm p-6 text-gray-500">Loading products...</div>
         )}
         {!isLoading && error && (
-          <div className="bg-white rounded-lg shadow p-6 text-red-600">{error}</div>
+          <div className="bg-white rounded-2xl border border-cyan-100 shadow-sm p-6 text-red-600">{error}</div>
         )}
         {!isLoading && !error && products.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-6 text-gray-500">No products yet.</div>
+          <div className="bg-white rounded-2xl border border-cyan-100 shadow-sm p-6 text-gray-500">No products yet.</div>
         )}
         {!isLoading && !error && products.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden">
+          <div key={product.id} className="bg-white rounded-2xl border border-cyan-100 shadow-sm overflow-hidden hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-100 transition-all">
             <img
               src={product.imageUrl ? `${API_BASE}${product.imageUrl}` : (product.image || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400')}
               alt={product.name}
@@ -225,14 +225,14 @@ export const ProductManagement = () => {
             <div className="p-6">
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-bold text-lg">{product.name}</h3>
-                <span className="bg-blue-100 text-[#0066cc] text-xs px-2 py-1 rounded">
+                <span className="bg-cyan-100 text-teal-700 text-xs px-2 py-1 rounded-full">
                   {product.category}
                 </span>
               </div>
               <p className="text-sm text-gray-600 mb-4">{product.description}</p>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div className="text-2xl font-bold text-[#0066cc]">${product.price}</div>
+                  <div className="text-2xl font-bold text-teal-600">${product.price}</div>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -259,8 +259,8 @@ export const ProductManagement = () => {
       {/* Add Product Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-cyan-100 flex justify-between items-center sticky top-0 bg-white">
               <h2 className="text-2xl font-bold">Add New Product</h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -279,7 +279,7 @@ export const ProductManagement = () => {
                   type="text"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   placeholder="e.g., Cloud Hosting Package"
                 />
               </div>
@@ -291,7 +291,7 @@ export const ProductManagement = () => {
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   rows={4}
                   placeholder="Describe your product..."
                 />
@@ -306,7 +306,7 @@ export const ProductManagement = () => {
                     type="number"
                     value={newProduct.price || ''}
                     onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                     placeholder="299"
                   />
                 </div>
@@ -319,7 +319,7 @@ export const ProductManagement = () => {
                 <select
                   value={newProduct.category}
                   onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                 >
                   <option value="">Select category</option>
                   <option value="Software">Software</option>
@@ -334,7 +334,7 @@ export const ProductManagement = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Product Image (Upload)
                 </label>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="bg-cyan-50/50 border border-cyan-100 rounded-2xl p-3 space-y-2">
                   {imageFile ? (
                     <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2">
                       <span className="text-sm text-gray-700 font-medium truncate">
@@ -356,7 +356,7 @@ export const ProductManagement = () => {
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-teal-600 hover:file:bg-cyan-100"
                   />
                 </div>
               </div>
@@ -368,7 +368,7 @@ export const ProductManagement = () => {
                 <textarea
                   value={newProduct.features.join(', ')}
                   onChange={(e) => setNewProduct({ ...newProduct, features: e.target.value.split(',').map(f => f.trim()) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   rows={4}
                   placeholder="Enter features separated by commas..."
                 />
@@ -386,7 +386,7 @@ export const ProductManagement = () => {
                 </button>
                 <button
                   onClick={handleAddProduct}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition"
+                  className="flex-1 bg-gradient-aurora-supplier text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition"
                 >
                   Add Product
                 </button>
@@ -399,8 +399,8 @@ export const ProductManagement = () => {
       {/* Edit Product Modal */}
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-cyan-100 flex justify-between items-center sticky top-0 bg-white">
               <h2 className="text-2xl font-bold">Edit Product</h2>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -419,7 +419,7 @@ export const ProductManagement = () => {
                   type="text"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   placeholder="e.g., Cloud Hosting Package"
                 />
               </div>
@@ -431,7 +431,7 @@ export const ProductManagement = () => {
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   rows={4}
                   placeholder="Describe your product..."
                 />
@@ -446,7 +446,7 @@ export const ProductManagement = () => {
                     type="number"
                     value={newProduct.price || ''}
                     onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                     placeholder="299"
                   />
                 </div>
@@ -459,7 +459,7 @@ export const ProductManagement = () => {
                 <select
                   value={newProduct.category}
                   onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                 >
                   <option value="">Select category</option>
                   <option value="Software">Software</option>
@@ -474,7 +474,7 @@ export const ProductManagement = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Product Image (Upload)
                 </label>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                <div className="bg-cyan-50/50 border border-cyan-100 rounded-2xl p-3 space-y-2">
                   {(newProduct.imageName || newProduct.imageUrl) && !imageFile && (
                     <p className="text-sm text-gray-600">
                       Current: <span className="font-medium">{newProduct.imageName || 'Uploaded image'}</span>
@@ -501,7 +501,7 @@ export const ProductManagement = () => {
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0066cc] hover:file:bg-blue-100"
+                    className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-teal-600 hover:file:bg-cyan-100"
                   />
                 </div>
               </div>
@@ -513,7 +513,7 @@ export const ProductManagement = () => {
                 <textarea
                   value={newProduct.features.join(', ')}
                   onChange={(e) => setNewProduct({ ...newProduct, features: e.target.value.split(',').map(f => f.trim()) })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                   rows={4}
                   placeholder="Enter features separated by commas..."
                 />
@@ -531,7 +531,7 @@ export const ProductManagement = () => {
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition"
+                  className="flex-1 bg-gradient-aurora-supplier text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition"
                 >
                   Save Changes
                 </button>

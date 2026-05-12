@@ -65,10 +65,10 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
     const highPotential = approvedIdeas.filter((idea) => (idea.aiScore || 0) >= 8.5).length;
     const categoryCount = new Set(approvedIdeas.map((idea) => idea.category).filter(Boolean)).size;
     return [
-      { label: 'Ideas Reviewed', value: String(reviewed), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-[#0066cc]' },
-      { label: 'Feedback Given', value: String(feedbackGiven), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-[#0099dd]' },
-      { label: 'High Potential', value: String(highPotential), icon: <Star className="w-6 h-6" />, color: 'bg-[#0088dd]' },
-      { label: 'Categories', value: String(categoryCount), icon: <TrendingUp className="w-6 h-6" />, color: 'bg-[#00aaee]' },
+      { label: 'Ideas Reviewed', value: String(reviewed), icon: <Lightbulb className="w-6 h-6" />, color: 'bg-gradient-aurora-investor' },
+      { label: 'Feedback Given', value: String(feedbackGiven), icon: <MessageSquare className="w-6 h-6" />, color: 'bg-gradient-to-br from-blue-500 to-violet-500' },
+      { label: 'High Potential', value: String(highPotential), icon: <Star className="w-6 h-6" />, color: 'bg-gradient-to-br from-violet-500 to-pink-500' },
+      { label: 'Categories', value: String(categoryCount), icon: <TrendingUp className="w-6 h-6" />, color: 'bg-gradient-to-br from-blue-500 to-pink-500' },
     ];
   }, [ideas, feedback]);
 
@@ -95,9 +95,9 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow p-6">
+          <div key={index} className="bg-white/90 rounded-2xl border border-violet-100 shadow-sm p-6 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-100 transition-all">
             <div className="flex items-center justify-between mb-4">
-              <div className={`${stat.color} text-white p-3 rounded-lg`}>
+              <div className={`${stat.color} text-white p-3 rounded-2xl shadow-lg shadow-violet-500/20`}>
                 {stat.icon}
               </div>
             </div>
@@ -109,8 +109,8 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Top Rated Ideas */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white/90 rounded-2xl border border-violet-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-violet-100">
             <h2 className="text-xl font-bold">High Potential Ideas</h2>
           </div>
           <div className="p-6 space-y-4">
@@ -135,9 +135,9 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
                       {idea.category}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
-                    <Star className="w-4 h-4 fill-[#0088dd] text-[#0088dd]" />
-                    <span className="text-sm font-semibold text-[#0066cc]">
+                  <div className="flex items-center gap-1 bg-violet-50 px-2 py-1 rounded-xl">
+                    <Star className="w-4 h-4 fill-pink-400 text-pink-400" />
+                    <span className="text-sm font-semibold text-violet-600">
                       {idea.aiScore !== null ? idea.aiScore : 'N/A'}
                     </span>
                   </div>
@@ -149,8 +149,8 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
+        <div className="bg-white/90 rounded-2xl border border-violet-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-violet-100">
             <h2 className="text-xl font-bold">Recent Activity</h2>
           </div>
           <div className="p-6">
@@ -169,7 +169,7 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
                   key={index}
                   className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0"
                 >
-                  <div className="w-2 h-2 bg-[#0066cc] rounded-full mt-2"></div>
+                  <div className="w-2 h-2 bg-violet-600 rounded-full mt-2"></div>
                   <div className="flex-1">
                     <p className="text-gray-900">{activity.action}</p>
                     <span className="text-sm text-gray-500">{activity.time}</span>
@@ -183,27 +183,27 @@ export const InvestorHome = ({ onNavigate }: InvestorHomeProps) => {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-gradient-to-br from-[#0066cc] to-[#0099dd] text-white rounded-lg shadow p-6">
+        <div className="bg-gradient-aurora-investor text-white rounded-2xl shadow-lg shadow-violet-500/20 p-6">
           <h3 className="text-xl font-bold mb-2 text-white">Discover New Ideas</h3>
-          <p className="mb-4 text-blue-100">
+          <p className="mb-4 text-white/80">
             Browse the latest startup ideas and identify promising investment opportunities.
           </p>
           <button
             onClick={() => onNavigate?.('ideas')}
-            className="bg-white text-[#0066cc] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+            className="bg-white text-violet-600 px-6 py-2 rounded-xl font-semibold hover:bg-violet-50 transition"
           >
             Browse Ideas
           </button>
         </div>
 
-        <div className="bg-white border-2 border-[#0066cc] rounded-lg shadow p-6">
+        <div className="bg-white/90 border border-violet-200 rounded-2xl shadow-sm p-6">
           <h3 className="text-xl font-bold mb-2">Share Your Expertise</h3>
           <p className="mb-4 text-gray-600">
             Provide valuable feedback to help entrepreneurs refine their concepts.
           </p>
           <button
             onClick={() => onNavigate?.('feedback')}
-            className="bg-[#0066cc] text-white px-6 py-2 rounded-lg font-semibold hover:bg-[#004080] transition"
+            className="bg-gradient-aurora-investor text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition"
           >
             View My Feedback
           </button>

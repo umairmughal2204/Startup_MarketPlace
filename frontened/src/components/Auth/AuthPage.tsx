@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Rocket, User, ShoppingBag, TrendingUp } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Rocket, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';
 import { UserRole } from '../../context/AuthContext';
 
 interface AuthPageProps {
@@ -9,24 +9,69 @@ interface AuthPageProps {
 }
 
 interface ProfessionalDetails {
-  // Entrepreneur fields
   companyName?: string;
   industry?: string;
   businessStage?: string;
   foundedYear?: string;
-  
-  // Supplier fields
   businessName?: string;
   businessType?: string;
   productsServices?: string;
   yearsInBusiness?: string;
-  
-  // Investor fields
   investmentFirm?: string;
   investmentRange?: string;
   focusAreas?: string;
   investmentStage?: string;
 }
+
+const roleThemes = {
+  Entrepreneur: {
+    label: 'Entrepreneur',
+    icon: <Rocket className="w-6 h-6" />,
+    description: 'Build, validate, and fund your startup.',
+    gradientClass: 'bg-gradient-aurora-entrepreneur',
+    softClass: 'bg-pink-50',
+    borderClass: 'border-pink-200',
+    textClass: 'text-pink-600',
+    selectedClass: 'border-pink-400 bg-pink-50 shadow-pink-500/15',
+  },
+  Supplier: {
+    label: 'Supplier',
+    icon: <ShoppingBag className="w-6 h-6" />,
+    description: 'Offer tools, services, and solutions.',
+    gradientClass: 'bg-gradient-aurora-supplier',
+    softClass: 'bg-cyan-50',
+    borderClass: 'border-cyan-200',
+    textClass: 'text-teal-600',
+    selectedClass: 'border-cyan-400 bg-cyan-50 shadow-cyan-500/15',
+  },
+  Investor: {
+    label: 'Investor',
+    icon: <TrendingUp className="w-6 h-6" />,
+    description: 'Review ventures and discover deals.',
+    gradientClass: 'bg-gradient-aurora-investor',
+    softClass: 'bg-violet-50',
+    borderClass: 'border-violet-200',
+    textClass: 'text-violet-600',
+    selectedClass: 'border-violet-400 bg-violet-50 shadow-violet-500/15',
+  },
+} satisfies Record<'Entrepreneur' | 'Supplier' | 'Investor', {
+  label: string;
+  icon: React.ReactNode;
+  description: string;
+  gradientClass: string;
+  softClass: string;
+  borderClass: string;
+  textClass: string;
+  selectedClass: string;
+}>;
+
+const roleOptions = Object.entries(roleThemes).map(([value, theme]) => ({
+  value: value as UserRole,
+  ...theme,
+}));
+
+const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400 focus:ring-4 focus:ring-violet-100';
+const labelClass = 'block text-sm font-semibold text-slate-700 mb-2';
 
 export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -39,6 +84,16 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
     password: '',
   });
   const [professionalDetails, setProfessionalDetails] = useState<ProfessionalDetails>({});
+
+  const selectedTheme = selectedRole && selectedRole in roleThemes
+    ? roleThemes[selectedRole as keyof typeof roleThemes]
+    : null;
+
+  const handleModeChange = (loginMode: boolean) => {
+    setIsLogin(loginMode);
+    setAuthError(null);
+    setAuthMessage(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,88 +114,27 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
     }
   };
 
-  // Filter roles based on login/register mode
-  const availableRoles = isLogin 
-    ? [
-        {
-          value: 'Entrepreneur' as UserRole,
-          label: 'Entrepreneur',
-          icon: <Rocket className="w-8 h-8" />,
-          color: 'bg-[#0066cc]',
-          description: 'Submit ideas and build your startup',
-        },
-        {
-          value: 'Supplier' as UserRole,
-          label: 'Supplier',
-          icon: <ShoppingBag className="w-8 h-8" />,
-          color: 'bg-[#008b8b]',
-          description: 'Sell products and manage orders',
-        },
-        {
-          value: 'Investor' as UserRole,
-          label: 'Investor',
-          icon: <TrendingUp className="w-8 h-8" />,
-          color: 'bg-[#0066cc]',
-          description: 'Discover and fund startups',
-        },
-      ]
-    : [
-        {
-          value: 'Entrepreneur' as UserRole,
-          label: 'Entrepreneur',
-          icon: <Rocket className="w-8 h-8" />,
-          color: 'bg-[#0066cc]',
-          description: 'Submit ideas and build your startup',
-        },
-        {
-          value: 'Supplier' as UserRole,
-          label: 'Supplier',
-          icon: <ShoppingBag className="w-8 h-8" />,
-          color: 'bg-[#008b8b]',
-          description: 'Sell products and manage orders',
-        },
-        {
-          value: 'Investor' as UserRole,
-          label: 'Investor',
-          icon: <TrendingUp className="w-8 h-8" />,
-          color: 'bg-[#0066cc]',
-          description: 'Discover and fund startups',
-        },
-      ];
+  const updateDetails = (key: keyof ProfessionalDetails, value: string) => {
+    setProfessionalDetails({ ...professionalDetails, [key]: value });
+  };
 
   const renderProfessionalFields = () => {
-    if (isLogin || !selectedRole) return null;
+    if (isLogin || !selectedRole || !selectedTheme) return null;
+
+    const panelClass = `space-y-4 rounded-2xl border ${selectedTheme.borderClass} ${selectedTheme.softClass} p-5`;
 
     switch (selectedRole) {
       case 'Entrepreneur':
         return (
-          <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-sm text-[#0066cc]">Professional Details (Required for Verification)</h3>
-            
+          <div className={panelClass}>
+            <h3 className={`text-sm font-bold ${selectedTheme.textClass}`}>Verification Details</h3>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Company/Startup Name *
-              </label>
-              <input
-                type="text"
-                value={professionalDetails.companyName || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, companyName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-                placeholder="e.g., TechStartup Inc."
-              />
+              <label className={labelClass}>Company/Startup Name *</label>
+              <input type="text" value={professionalDetails.companyName || ''} onChange={(e) => updateDetails('companyName', e.target.value)} className={inputClass} required placeholder="e.g., TechStartup Inc." />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Industry *
-              </label>
-              <select
-                value={professionalDetails.industry || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, industry: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-              >
+              <label className={labelClass}>Industry *</label>
+              <select value={professionalDetails.industry || ''} onChange={(e) => updateDetails('industry', e.target.value)} className={inputClass} required>
                 <option value="">Select Industry</option>
                 <option value="Technology">Technology</option>
                 <option value="Healthcare">Healthcare</option>
@@ -151,73 +145,37 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
                 <option value="Other">Other</option>
               </select>
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Business Stage *
-              </label>
-              <select
-                value={professionalDetails.businessStage || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, businessStage: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-              >
-                <option value="">Select Stage</option>
-                <option value="Idea">Idea Stage</option>
-                <option value="MVP">MVP/Prototype</option>
-                <option value="Early Stage">Early Stage</option>
-                <option value="Growth">Growth Stage</option>
-                <option value="Established">Established</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Founded Year *
-              </label>
-              <input
-                type="number"
-                value={professionalDetails.foundedYear || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, foundedYear: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-                min="1900"
-                max={new Date().getFullYear()}
-                placeholder="e.g., 2024"
-              />
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Business Stage *</label>
+                <select value={professionalDetails.businessStage || ''} onChange={(e) => updateDetails('businessStage', e.target.value)} className={inputClass} required>
+                  <option value="">Select Stage</option>
+                  <option value="Idea">Idea Stage</option>
+                  <option value="MVP">MVP/Prototype</option>
+                  <option value="Early Stage">Early Stage</option>
+                  <option value="Growth">Growth Stage</option>
+                  <option value="Established">Established</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Founded Year *</label>
+                <input type="number" value={professionalDetails.foundedYear || ''} onChange={(e) => updateDetails('foundedYear', e.target.value)} className={inputClass} required min="1900" max={new Date().getFullYear()} placeholder="2024" />
+              </div>
             </div>
           </div>
         );
 
       case 'Supplier':
         return (
-          <div className="space-y-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
-            <h3 className="font-semibold text-sm text-[#008b8b]">Professional Details (Required for Verification)</h3>
-            
+          <div className={panelClass}>
+            <h3 className={`text-sm font-bold ${selectedTheme.textClass}`}>Verification Details</h3>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Business Name *
-              </label>
-              <input
-                type="text"
-                value={professionalDetails.businessName || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, businessName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#008b8b] focus:border-transparent"
-                required
-                placeholder="e.g., Supply Solutions LLC"
-              />
+              <label className={labelClass}>Business Name *</label>
+              <input type="text" value={professionalDetails.businessName || ''} onChange={(e) => updateDetails('businessName', e.target.value)} className={inputClass} required placeholder="e.g., Supply Solutions LLC" />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Business Type *
-              </label>
-              <select
-                value={professionalDetails.businessType || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, businessType: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#008b8b] focus:border-transparent"
-                required
-              >
+              <label className={labelClass}>Business Type *</label>
+              <select value={professionalDetails.businessType || ''} onChange={(e) => updateDetails('businessType', e.target.value)} className={inputClass} required>
                 <option value="">Select Business Type</option>
                 <option value="Software Provider">Software Provider</option>
                 <option value="Hardware Supplier">Hardware Supplier</option>
@@ -228,108 +186,52 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
                 <option value="Other">Other</option>
               </select>
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Products/Services Offered *
-              </label>
-              <textarea
-                value={professionalDetails.productsServices || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, productsServices: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#008b8b] focus:border-transparent"
-                required
-                rows={3}
-                placeholder="Briefly describe your products or services..."
-              />
+              <label className={labelClass}>Products/Services Offered *</label>
+              <textarea value={professionalDetails.productsServices || ''} onChange={(e) => updateDetails('productsServices', e.target.value)} className={`${inputClass} min-h-24 resize-none`} required placeholder="Briefly describe your products or services..." />
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Years in Business *
-              </label>
-              <input
-                type="number"
-                value={professionalDetails.yearsInBusiness || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, yearsInBusiness: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#008b8b] focus:border-transparent"
-                required
-                min="0"
-                max="100"
-                placeholder="e.g., 5"
-              />
+              <label className={labelClass}>Years in Business *</label>
+              <input type="number" value={professionalDetails.yearsInBusiness || ''} onChange={(e) => updateDetails('yearsInBusiness', e.target.value)} className={inputClass} required min="0" max="100" placeholder="5" />
             </div>
           </div>
         );
 
       case 'Investor':
         return (
-          <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="font-semibold text-sm text-[#0066cc]">Professional Details (Required for Verification)</h3>
-            
+          <div className={panelClass}>
+            <h3 className={`text-sm font-bold ${selectedTheme.textClass}`}>Verification Details</h3>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Investment Firm/Name *
-              </label>
-              <input
-                type="text"
-                value={professionalDetails.investmentFirm || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, investmentFirm: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-                placeholder="e.g., Venture Capital Partners"
-              />
+              <label className={labelClass}>Investment Firm/Name *</label>
+              <input type="text" value={professionalDetails.investmentFirm || ''} onChange={(e) => updateDetails('investmentFirm', e.target.value)} className={inputClass} required placeholder="e.g., Venture Capital Partners" />
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Investment Range *
-              </label>
-              <select
-                value={professionalDetails.investmentRange || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, investmentRange: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-              >
-                <option value="">Select Investment Range</option>
-                <option value="$10K - $50K">$10K - $50K</option>
-                <option value="$50K - $250K">$50K - $250K</option>
-                <option value="$250K - $1M">$250K - $1M</option>
-                <option value="$1M - $5M">$1M - $5M</option>
-                <option value="$5M+">$5M+</option>
-              </select>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Investment Range *</label>
+                <select value={professionalDetails.investmentRange || ''} onChange={(e) => updateDetails('investmentRange', e.target.value)} className={inputClass} required>
+                  <option value="">Select Range</option>
+                  <option value="$10K - $50K">$10K - $50K</option>
+                  <option value="$50K - $250K">$50K - $250K</option>
+                  <option value="$250K - $1M">$250K - $1M</option>
+                  <option value="$1M - $5M">$1M - $5M</option>
+                  <option value="$5M+">$5M+</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Preferred Stage *</label>
+                <select value={professionalDetails.investmentStage || ''} onChange={(e) => updateDetails('investmentStage', e.target.value)} className={inputClass} required>
+                  <option value="">Select Stage</option>
+                  <option value="Seed">Seed Stage</option>
+                  <option value="Series A">Series A</option>
+                  <option value="Series B">Series B</option>
+                  <option value="Series C+">Series C+</option>
+                  <option value="All Stages">All Stages</option>
+                </select>
+              </div>
             </div>
-
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Focus Areas *
-              </label>
-              <textarea
-                value={professionalDetails.focusAreas || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, focusAreas: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-                rows={3}
-                placeholder="e.g., Technology, Healthcare, SaaS..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Preferred Investment Stage *
-              </label>
-              <select
-                value={professionalDetails.investmentStage || ''}
-                onChange={(e) => setProfessionalDetails({ ...professionalDetails, investmentStage: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                required
-              >
-                <option value="">Select Stage</option>
-                <option value="Seed">Seed Stage</option>
-                <option value="Series A">Series A</option>
-                <option value="Series B">Series B</option>
-                <option value="Series C+">Series C+</option>
-                <option value="All Stages">All Stages</option>
-              </select>
+              <label className={labelClass}>Focus Areas *</label>
+              <textarea value={professionalDetails.focusAreas || ''} onChange={(e) => updateDetails('focusAreas', e.target.value)} className={`${inputClass} min-h-24 resize-none`} required placeholder="e.g., Technology, Healthcare, SaaS..." />
             </div>
           </div>
         );
@@ -340,148 +242,134 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0066cc] to-[#008b8b] flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden">
-        <div className="grid md:grid-cols-2">
-          {/* Left Side - Branding */}
-          <div className="bg-gradient-to-br from-[#0066cc] to-[#008b8b] text-white p-12 flex flex-col justify-center">
-            <div className="flex items-center gap-3 mb-6">
-              <Rocket className="w-10 h-10" />
-              <span className="text-3xl font-bold">LaunchPad</span>
-            </div>
-            <h2 className="text-3xl font-bold mb-4 text-white">
-              {isLogin ? 'Welcome Back!' : 'Join Our Ecosystem'}
-            </h2>
-            <p className="text-blue-100 mb-8">
-              Connect with entrepreneurs, suppliers, and investors in one unified platform.
-            </p>
-            <button
-              onClick={onBack}
-              className="text-white border border-white px-6 py-2 rounded-lg hover:bg-white hover:text-[#0066cc] transition w-fit"
-            >
-              ← Back to Home
-            </button>
-          </div>
+    <div className="min-h-screen bg-[#0b1b3a] px-4 py-8 text-slate-900">
+      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '36px 36px' }}></div>
+      <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-pink-500/20 blur-[120px]"></div>
+      <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/20 blur-[140px]"></div>
 
-          {/* Right Side - Form */}
-          <div className="p-12">
-            <div className="flex gap-4 mb-8">
-              <button
-                onClick={() => setIsLogin(true)}
-                className={`flex-1 py-2 rounded-lg transition ${
-                  isLogin
-                    ? 'bg-[#0066cc] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Login
+      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center">
+        <div className="w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white shadow-2xl">
+          <div className="grid lg:grid-cols-[0.85fr_1.15fr]">
+            <aside className={`relative overflow-hidden p-8 text-white sm:p-10 ${selectedTheme?.gradientClass || 'bg-gradient-aurora-base'}`}>
+              <button onClick={onBack} className="mb-10 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/20">
+                <ArrowLeft className="w-4 h-4" />
+                Back to Home
               </button>
-              <button
-                onClick={() => setIsLogin(false)}
-                className={`flex-1 py-2 rounded-lg transition ${
-                  !isLogin
-                    ? 'bg-[#0066cc] text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Register
-              </button>
-            </div>
 
-            {authError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-6">
-                {authError}
+              <div className="max-w-sm">
+                <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <h1 className="text-4xl font-bold leading-tight text-white">
+                  {isLogin ? 'Welcome back to LaunchPad.' : 'Create your verified LaunchPad profile.'}
+                </h1>
+                <p className="mt-5 text-sm leading-6 text-white/82">
+                  One account, three connected paths: founders building traction, suppliers powering growth, and investors finding vetted opportunities.
+                </p>
               </div>
-            )}
 
-            {authMessage && (
-              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg p-3 mb-6">
-                {authMessage}
-              </div>
-            )}
-
-            {/* Role Selection */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Select Your Role
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {availableRoles.map((role) => (
-                  <button
-                    key={role.value}
-                    type="button"
-                    onClick={() => setSelectedRole(role.value)}
-                    className={`p-3 rounded-lg border-2 transition ${
-                      selectedRole === role.value
-                        ? 'border-[#0066cc] bg-[#e6f2ff]'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className={`${role.color} text-white w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2`}>
+              <div className="mt-10 space-y-3">
+                {roleOptions.map((role) => (
+                  <div key={role.value} className="flex items-center gap-3 rounded-2xl bg-white/12 p-3 ring-1 ring-white/15">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/18">
                       {role.icon}
                     </div>
-                    <div className="text-xs font-semibold text-gray-700">{role.label}</div>
-                  </button>
+                    <div>
+                      <div className="text-sm font-bold text-white">{role.label}</div>
+                      <div className="text-xs text-white/75">{role.description}</div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            </div>
+            </aside>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                    required={!isLogin}
-                  />
+            <main className="p-6 sm:p-10 lg:p-12">
+              <div className="mb-8">
+                <div className="inline-grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+                  <button onClick={() => handleModeChange(true)} className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${isLogin ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+                    Login
+                  </button>
+                  <button onClick={() => handleModeChange(false)} className={`rounded-lg px-5 py-2.5 text-sm font-bold transition ${!isLogin ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}>
+                    Register
+                  </button>
+                </div>
+
+                <h2 className="mt-8 text-3xl font-bold text-slate-950">
+                  {isLogin ? 'Sign in to your portal' : 'Choose your role and apply'}
+                </h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  {isLogin ? 'Select the role tied to your account before signing in.' : 'Verification details help the admin approve the right access.'}
+                </p>
+              </div>
+
+              {authError && (
+                <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+                  {authError}
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                  required
-                />
+              {authMessage && (
+                <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-3 text-sm font-medium text-green-700">
+                  {authMessage}
+                </div>
+              )}
+
+              <div className="mb-6">
+                <label className={labelClass}>Select Your Role</label>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {roleOptions.map((role) => (
+                    <button
+                      key={role.value}
+                      type="button"
+                      onClick={() => setSelectedRole(role.value)}
+                      className={`rounded-2xl border p-4 text-left shadow-lg shadow-transparent transition hover:-translate-y-0.5 hover:border-slate-300 ${
+                        selectedRole === role.value ? role.selectedClass : 'border-slate-200 bg-white'
+                      }`}
+                    >
+                      <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl text-white ${role.gradientClass}`}>
+                        {selectedRole === role.value ? <CheckCircle2 className="w-6 h-6" /> : role.icon}
+                      </div>
+                      <div className="text-sm font-bold text-slate-950">{role.label}</div>
+                      <div className="mt-1 text-xs leading-5 text-slate-500">{role.description}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-                  required
-                />
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {!isLogin && (
+                  <div>
+                    <label className={labelClass}>Full Name</label>
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={inputClass} required={!isLogin} placeholder="Your name" />
+                  </div>
+                )}
 
-              {renderProfessionalFields()}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className={labelClass}>Email Address</label>
+                    <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className={inputClass} required placeholder="you@example.com" />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Password</label>
+                    <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className={inputClass} required placeholder="Enter password" />
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={!selectedRole}
-                className={`w-full py-3 rounded-lg font-semibold transition ${
-                  selectedRole
-                    ? 'bg-[#0066cc] text-white hover:bg-[#004080]'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isLogin ? 'Sign In' : 'Create Account'}
-              </button>
-            </form>
+                {renderProfessionalFields()}
+
+                <button
+                  type="submit"
+                  disabled={!selectedRole}
+                  className={`w-full rounded-xl py-3.5 font-bold text-white transition ${
+                    selectedRole && selectedTheme
+                      ? `${selectedTheme.gradientClass} shadow-lg hover:-translate-y-0.5`
+                      : 'cursor-not-allowed bg-slate-300 text-slate-500'
+                  }`}
+                >
+                  {isLogin ? 'Sign In' : 'Create Account'}
+                </button>
+              </form>
+            </main>
           </div>
         </div>
       </div>

@@ -160,7 +160,7 @@ export const IdeaBrowser = () => {
   return (
     <div className="space-y-6">
       {/* Search and Filter Bar */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl border border-violet-100 shadow-sm p-6">
         <div className="grid md:grid-cols-2 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -169,7 +169,7 @@ export const IdeaBrowser = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search ideas..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
             />
           </div>
 
@@ -178,7 +178,7 @@ export const IdeaBrowser = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -195,13 +195,13 @@ export const IdeaBrowser = () => {
         {!isLoading && !error && filteredIdeas.map((idea) => (
           <div
             key={idea.id}
-            className="bg-white rounded-lg shadow hover:shadow-xl transition p-6"
+            className="bg-white rounded-2xl border border-violet-100 shadow-sm hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-100 transition-all p-6"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
                 <h3 className="font-bold text-xl mb-2">{idea.title}</h3>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="bg-blue-100 text-[#0066cc] text-xs px-2 py-1 rounded">
+                  <span className="bg-violet-100 text-violet-700 text-xs px-2 py-1 rounded-full">
                     {idea.category}
                   </span>
                 </div>
@@ -211,12 +211,12 @@ export const IdeaBrowser = () => {
             <p className="text-gray-700 mb-4 line-clamp-3">{idea.description}</p>
 
             {/* AI Scores */}
-            <div className="bg-blue-50 rounded-lg p-3 mb-4">
+            <div className="bg-violet-50 rounded-2xl border border-violet-100 p-3 mb-4">
               <div className="flex items-center gap-2 mb-1">
-                <Target className="w-4 h-4 text-[#0066cc]" />
+                <Target className="w-4 h-4 text-violet-600" />
                 <span className="text-xs font-semibold text-gray-700">AI Score</span>
               </div>
-              <div className="text-2xl font-bold text-[#0066cc]">
+              <div className="text-2xl font-bold text-violet-600">
                 {idea.aiScore !== null ? `${idea.aiScore}/10` : 'N/A'}
               </div>
             </div>
@@ -230,7 +230,7 @@ export const IdeaBrowser = () => {
 
             <button
               onClick={() => openFeedbackModal(idea)}
-              className="w-full bg-[#0066cc] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+              className="w-full bg-gradient-aurora-investor text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition flex items-center justify-center gap-2"
             >
               <MessageSquare className="w-5 h-5" />
               Provide Feedback
@@ -250,19 +250,19 @@ export const IdeaBrowser = () => {
       </div>
 
       {isLoading && (
-        <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+        <div className="bg-white rounded-2xl border border-violet-100 shadow-sm p-12 text-center text-gray-500">
           Loading ideas...
         </div>
       )}
 
       {!isLoading && error && (
-        <div className="bg-white rounded-lg shadow p-12 text-center text-red-600">
+        <div className="bg-white rounded-2xl border border-violet-100 shadow-sm p-12 text-center text-red-600">
           {error}
         </div>
       )}
 
       {!isLoading && !error && filteredIdeas.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="bg-white rounded-2xl border border-violet-100 shadow-sm p-12 text-center">
           <p className="text-gray-500">No ideas found matching your criteria.</p>
         </div>
       )}
@@ -270,8 +270,8 @@ export const IdeaBrowser = () => {
       {/* Feedback Modal */}
       {feedbackModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl">
+            <div className="p-6 border-b border-violet-100 flex justify-between items-center">
               <h2 className="text-2xl font-bold">Provide Feedback</h2>
               <button
                 onClick={closeFeedbackModal}
@@ -325,7 +325,7 @@ export const IdeaBrowser = () => {
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
                   rows={6}
                   placeholder="Share your insights, suggestions, or concerns about this idea..."
                 />
@@ -340,7 +340,7 @@ export const IdeaBrowser = () => {
                 </button>
                 <button
                   onClick={handleSubmitFeedback}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition"
+                  className="flex-1 bg-gradient-aurora-investor text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition"
                 >
                   Submit Feedback
                 </button>
@@ -353,8 +353,8 @@ export const IdeaBrowser = () => {
       {/* Detail Modal */}
       {detailModal.isOpen && detailModal.idea && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-violet-100 flex justify-between items-center sticky top-0 bg-white">
               <h2 className="text-2xl font-bold">Idea Details</h2>
               <button
                 onClick={closeDetailModal}
@@ -369,7 +369,7 @@ export const IdeaBrowser = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-3xl font-bold text-gray-900">{detailModal.idea.title}</h3>
-                  <span className="bg-blue-100 text-[#0066cc] px-3 py-1 rounded-full font-semibold">
+                  <span className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full font-semibold">
                     {detailModal.idea.category}
                   </span>
                 </div>
@@ -389,14 +389,14 @@ export const IdeaBrowser = () => {
 
               {/* AI Scores */}
               <div className="grid md:grid-cols-1 gap-6">
-                <div className="bg-blue-50 rounded-lg p-6">
+                <div className="bg-violet-50 rounded-2xl border border-violet-100 p-6">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Target className="w-6 h-6 text-[#0066cc]" />
+                    <div className="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center">
+                      <Target className="w-6 h-6 text-violet-600" />
                     </div>
                     <h4 className="font-bold text-lg">AI Score</h4>
                   </div>
-                  <div className="text-4xl font-bold text-[#0066cc]">
+                  <div className="text-4xl font-bold text-violet-600">
                     {detailModal.idea.aiScore !== null ? `${detailModal.idea.aiScore}/10` : 'N/A'}
                   </div>
                   <p className="text-sm text-gray-600 mt-2">AI-analyzed market potential</p>
@@ -407,8 +407,8 @@ export const IdeaBrowser = () => {
               {detailModal.idea.documentUrl && (
                 <div className="bg-white rounded-lg border-2 border-gray-200 p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <FileText className="w-6 h-6 text-[#0066cc]" />
+                    <div className="w-12 h-12 bg-violet-100 rounded-2xl flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-violet-600" />
                     </div>
                     <h4 className="font-bold text-lg">Attached Document</h4>
                   </div>
@@ -421,7 +421,7 @@ export const IdeaBrowser = () => {
                         </p>
                         <p className="text-sm text-gray-600">Type: Document</p>
                       </div>
-                      <span className="bg-blue-100 text-[#0066cc] px-3 py-1 rounded text-sm font-semibold">
+                      <span className="bg-violet-100 text-violet-700 px-3 py-1 rounded text-sm font-semibold">
                         Document
                       </span>
                     </div>
@@ -430,7 +430,7 @@ export const IdeaBrowser = () => {
                   <a
                     href={`${API_BASE}${detailModal.idea.documentUrl}`}
                     download={detailModal.idea.documentName || undefined}
-                    className="w-full bg-[#0066cc] text-white py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-aurora-investor text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     Download Document
@@ -451,7 +451,7 @@ export const IdeaBrowser = () => {
                     closeDetailModal();
                     openFeedbackModal(detailModal.idea!);
                   }}
-                  className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2"
+                  className="flex-1 bg-gradient-aurora-investor text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="w-5 h-5" />
                   Provide Feedback
