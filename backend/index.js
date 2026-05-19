@@ -10,6 +10,8 @@ const supplierRoutes = require("./routes/supplier");
 const investorRoutes = require("./routes/investor");
 const chatRoutes = require("./routes/chat");
 const authRoutes = require("./routes/auth");
+const aiRoutes = require("./routes/ai");
+const resourceRoutes = require("./routes/resources");
 const User = require("./models/User");
 
 const app = express();
@@ -26,6 +28,8 @@ app.use("/api/supplier", supplierRoutes);
 app.use("/api/investor", investorRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/resources", resourceRoutes);
 
 // Simple health check route
 app.get("/", (req, res) => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Package, ShoppingBag, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, Settings, GraduationCap, BookOpen, Library } from 'lucide-react';
 import { Sidebar } from '../shared/Sidebar';
 import { NotificationCenter } from '../shared/NotificationCenter';
 import { ChatWidget } from '../shared/ChatWidget';
@@ -7,6 +7,9 @@ import { SupplierHome } from './SupplierHome';
 import { ProductManagement } from './ProductManagement';
 import { OrderManagement } from './OrderManagement';
 import { SettingsPage } from '../Entrepreneur/SettingsPage';
+import { MentorshipMarketplace } from '../shared/MentorshipMarketplace';
+import { WebinarsTraining } from '../shared/WebinarsTraining';
+import { ResourceLibrary } from '../shared/ResourceLibrary';
 
 interface SupplierDashboardProps {
   userName: string;
@@ -20,6 +23,9 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
     { id: 'dashboard', label: 'Dashboard Home', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'products', label: 'Product Management', icon: <Package className="w-5 h-5" /> },
     { id: 'orders', label: 'Order Management', icon: <ShoppingBag className="w-5 h-5" /> },
+    { id: 'mentorship', label: 'Mentorship', icon: <GraduationCap className="w-5 h-5" /> },
+    { id: 'webinars', label: 'Webinars & Training', icon: <BookOpen className="w-5 h-5" /> },
+    { id: 'resources', label: 'Resource Library', icon: <Library className="w-5 h-5" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -31,6 +37,12 @@ export const SupplierDashboard = ({ userName, onLogout }: SupplierDashboardProps
         return <ProductManagement />;
       case 'orders':
         return <OrderManagement />;
+      case 'mentorship':
+        return <MentorshipMarketplace />;
+      case 'webinars':
+        return <WebinarsTraining />;
+      case 'resources':
+        return <ResourceLibrary />;
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:

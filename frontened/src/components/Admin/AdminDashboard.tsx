@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Lightbulb, Package, Users, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, Package, Users, BarChart3, Settings, BookOpen, Library } from 'lucide-react';
 import { Sidebar } from '../shared/Sidebar';
 import { NotificationCenter } from '../shared/NotificationCenter';
 import { ChatWidget } from '../shared/ChatWidget';
@@ -9,6 +9,8 @@ import { ReviewProducts } from './ReviewProducts';
 import { ManageUsers } from './ManageUsers';
 import { Analytics } from './Analytics';
 import { SettingsPage } from '../Entrepreneur/SettingsPage';
+import { WebinarsTraining } from '../shared/WebinarsTraining';
+import { ResourceLibrary } from '../shared/ResourceLibrary';
 
 interface AdminDashboardProps {
   userName: string;
@@ -24,6 +26,8 @@ export const AdminDashboard = ({ userName, onLogout }: AdminDashboardProps) => {
     { id: 'products', label: 'Review Products', icon: <Package className="w-5 h-5" /> },
     { id: 'users', label: 'Manage Users', icon: <Users className="w-5 h-5" /> },
     { id: 'analytics', label: 'View Analytics', icon: <BarChart3 className="w-5 h-5" /> },
+    { id: 'webinars', label: 'Webinars & Training', icon: <BookOpen className="w-5 h-5" /> },
+    { id: 'resources', label: 'Resource Library', icon: <Library className="w-5 h-5" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -39,6 +43,10 @@ export const AdminDashboard = ({ userName, onLogout }: AdminDashboardProps) => {
         return <ManageUsers />;
       case 'analytics':
         return <Analytics />;
+      case 'webinars':
+        return <WebinarsTraining />;
+      case 'resources':
+        return <ResourceLibrary />;
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:

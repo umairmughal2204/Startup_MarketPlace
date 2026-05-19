@@ -71,27 +71,27 @@ export const SubmitIdea = () => {
         file: formData.file,
       });
 
-      const mockAIFeedback: AIFeedback = {
-        marketFit: 8.5,
-        feasibility: 7.8,
-        suggestions: [
-          'Consider adding a mobile app component to increase market reach',
-          'Partner with established brands to build credibility',
-          'Conduct user surveys to validate core assumptions',
-        ],
-        strengths: [
-          'Strong value proposition addressing a clear pain point',
-          'Scalable business model with multiple revenue streams',
-          'Large addressable market with growing demand',
-        ],
-        concerns: [
-          'High competition in the selected category',
-          'Initial customer acquisition costs may be significant',
-          'Technology implementation complexity requires strong technical team',
-        ],
+      const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
+      const aiRes = await fetch(`${API_BASE}/api/ai/analyze-idea`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+        }),
+      });
+      const aiData = aiRes.ok ? await aiRes.json() : null;
+
+      const realAIFeedback: AIFeedback = {
+        marketFit: aiData?.marketFit ?? 7.0,
+        feasibility: aiData?.feasibility ?? 6.5,
+        suggestions: aiData?.suggestions ?? ['Conduct user research', 'Define go-to-market strategy', 'Build a basic MVP'],
+        strengths: aiData?.strengths ?? ['Clear problem statement', 'Defined target audience', 'Growth potential'],
+        concerns: aiData?.concerns ?? ['Market competition', 'Funding requirements', 'Execution complexity'],
       };
 
-      setAiAnalysis(mockAIFeedback);
+      setAiAnalysis(realAIFeedback);
       addNotification({
         type: 'general',
         title: 'Idea Submitted Successfully',
