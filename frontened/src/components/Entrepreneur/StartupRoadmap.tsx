@@ -29,13 +29,26 @@ export const StartupRoadmap = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    if (!form.title.trim()) errors.title = 'Business title is required';
+    if (!form.category) errors.category = 'Please select a category';
+    if (!form.stage) errors.stage = 'Please select your current stage';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
     setPhases(null);
     setCompletedTasks(new Set());
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/ai/roadmap`, {
         method: 'POST',
@@ -77,37 +90,49 @@ export const StartupRoadmap = () => {
 
       {/* Form */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
-        <form onSubmit={handleGenerate} className="grid md:grid-cols-4 gap-4 items-end">
+        <form onSubmit={handleGenerate} className="grid md:grid-cols-4 gap-4 items-start">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Business Name *</label>
             <input
-              type="text" value={form.title} required
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+              type="text" value={form.title}
+              onChange={(e) => {
+                setForm({ ...form, title: e.target.value });
+                if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               placeholder="Your startup name"
             />
+            {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Category *</label>
             <select
               value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+              onChange={(e) => {
+                setForm({ ...form, category: e.target.value });
+                if (fieldErrors.category) setFieldErrors({ ...fieldErrors, category: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.category ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
             >
-              <option value="">Select</option>
+              <option value="">Select category</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+            {fieldErrors.category && <p className="text-red-500 text-xs mt-1">{fieldErrors.category}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Current Stage</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Current Stage *</label>
             <select
               value={form.stage}
-              onChange={(e) => setForm({ ...form, stage: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+              onChange={(e) => {
+                setForm({ ...form, stage: e.target.value });
+                if (fieldErrors.stage) setFieldErrors({ ...fieldErrors, stage: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.stage ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
             >
-              <option value="">Select</option>
+              <option value="">Select stage</option>
               {stages.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+            {fieldErrors.stage && <p className="text-red-500 text-xs mt-1">{fieldErrors.stage}</p>}
           </div>
           <button
             type="submit"

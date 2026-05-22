@@ -1,23 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { GraduationCap, Star, Clock, Search, MessageSquare, CheckCircle } from 'lucide-react';
+import { GraduationCap, Star, Clock, Search, MessageSquare, CheckCircle, Plus, X, DollarSign } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
-
-const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
+import { useAuth } from '../../context/AuthContext';
+import { mentorshipApi } from '../../api/featuresApi';
 
 interface Mentor {
-  id: string;
+  _id: string;
   name: string;
-  expertise: string;
-  industry: string;
-  experience: string;
-  bio: string;
-  availability: string;
-  rating: number;
-  sessions: number;
-  image: string;
+  expertise: string[];
+  professionalDetails?: {
+    industry?: string;
+  };
+  mentorBio: string;
+  mentorAvailability: string;
+  hourlyRate: number;
+  mentorRating: number;
+  mentorSessions: number;
 }
-
-const EXPERTISE_LIST = ['Product Strategy', 'Fundraising & VC', 'Marketing & Growth', 'Operations & Scaling', 'Legal & Compliance', 'Tech Architecture'];
 
 export const MentorshipMarketplace = () => {
   const [mentors, setMentors] = useState<Mentor[]>([]);
@@ -25,41 +24,177 @@ export const MentorshipMarketplace = () => {
   const [search, setSearch] = useState('');
   const [filterExpertise, setFilterExpertise] = useState('');
   const [bookedIds, setBookedIds] = useState<Set<string>>(new Set());
+  const [showBecomeMentor, setShowBecomeMentor] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { openChatWithContact } = useChat();
+  const { user } = useAuth();
+
+  const [mentorForm, setMentorForm] = useState({
+    mentorBio: '',
+    expertise: [] as string[],
+    hourlyRate: 50,
+    mentorAvailability: 'Flexible',
+  });
+
+  const fetchMentors = async () => {
+    setIsLoading(true);
+    try {
+      const data = await mentorshipApi.getMentors();
+      setMentors(data);
+    } catch {
+      setMentors([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-    setIsLoading(true);
-    fetch(`${API_BASE}/api/resources/mentors`)
-      .then((r) => r.json())
-      .then((data) => { if (mounted) setMentors(data); })
-      .catch(() => { if (mounted) setMentors([]); })
-      .finally(() => { if (mounted) setIsLoading(false); });
-    return () => { mounted = false; };
+    fetchMentors();
   }, []);
+
+  const allExpertise = [...new Set(mentors.flatMap((m) => m.expertise || []))].sort();
 
   const filtered = mentors.filter((m) => {
     const q = search.toLowerCase();
-    const matchSearch = !q || m.name.toLowerCase().includes(q) || m.expertise.toLowerCase().includes(q) || m.bio.toLowerCase().includes(q);
-    const matchExpertise = !filterExpertise || m.expertise === filterExpertise;
+    const matchSearch = !q || m.name.toLowerCase().includes(q) || m.mentorBio?.toLowerCase().includes(q) || m.expertise?.some((e) => e.toLowerCase().includes(q));
+    const matchExpertise = !filterExpertise || m.expertise?.includes(filterExpertise);
     return matchSearch && matchExpertise;
   });
 
-  const handleBook = (mentor: Mentor) => {
-    setBookedIds((prev) => new Set(prev).add(mentor.id));
-    openChatWithContact({ id: mentor.id, name: mentor.name, role: 'Entrepreneur' });
+  const handleBook = async (mentor: Mentor) => {
+    try {
+      await mentorshipApi.bookSession(mentor._id);
+      setBookedIds((prev) => new Set(prev).add(mentor._id));
+      openChatWithContact({ id: mentor._id, name: mentor.name, role: 'Entrepreneur' });
+    } catch (err) {
+      alert('Failed to book session. Please try again.');
+    }
+  };
+
+  const handleBecomeMentor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await mentorshipApi.becomeMentor(mentorForm);
+      setShowBecomeMentor(false);
+      fetchMentors();
+      alert('You are now listed as a mentor!');
+    } catch {
+      alert('Failed to become mentor. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleExpertise = (skill: string) => {
+    setMentorForm((prev) => ({
+      ...prev,
+      expertise: prev.expertise.includes(skill)
+        ? prev.expertise.filter((e) => e !== skill)
+        : [...prev.expertise, skill],
+    }));
   };
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <GraduationCap className="w-6 h-6 text-pink-600" />
-          <h2 className="text-2xl font-bold text-slate-950">Mentorship Marketplace</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <GraduationCap className="w-6 h-6 text-pink-600" />
+              <h2 className="text-2xl font-bold text-slate-950">Mentorship Marketplace</h2>
+            </div>
+            <p className="text-gray-600">Connect with experienced mentors who can guide you through your startup journey.</p>
+          </div>
+          <button
+            onClick={() => setShowBecomeMentor(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
+          >
+            <Plus className="w-4 h-4" /> Become a Mentor
+          </button>
         </div>
-        <p className="text-gray-600">Connect with experienced mentors who can guide you through your startup journey.</p>
       </div>
+
+      {/* Become Mentor Modal */}
+      {showBecomeMentor && (
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-800">Become a Mentor</h3>
+            <button onClick={() => setShowBecomeMentor(false)} className="p-1 hover:bg-gray-100 rounded-full">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+          <form onSubmit={handleBecomeMentor} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
+              <textarea
+                value={mentorForm.mentorBio}
+                onChange={(e) => setMentorForm({ ...mentorForm, mentorBio: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                rows={3}
+                placeholder="Describe your experience and what you can help with..."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Expertise</label>
+              <div className="flex flex-wrap gap-2">
+                {['Product Strategy', 'Fundraising', 'Marketing', 'Tech', 'Operations', 'Legal', 'Sales', 'Design'].map((skill) => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleExpertise(skill)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      mentorForm.expertise.includes(skill)
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Hourly Rate ($)</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input
+                    type="number"
+                    value={mentorForm.hourlyRate}
+                    onChange={(e) => setMentorForm({ ...mentorForm, hourlyRate: parseInt(e.target.value) || 0 })}
+                    className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Availability</label>
+                <select
+                  value={mentorForm.mentorAvailability}
+                  onChange={(e) => setMentorForm({ ...mentorForm, mentorAvailability: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                >
+                  <option value="Weekdays">Weekdays</option>
+                  <option value="Weekends">Weekends</option>
+                  <option value="Evenings">Evenings</option>
+                  <option value="Flexible">Flexible</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || mentorForm.expertise.length === 0}
+              className="w-full py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50"
+            >
+              {isSubmitting ? 'Submitting...' : 'Become a Mentor'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5">
@@ -76,36 +211,44 @@ export const MentorshipMarketplace = () => {
           <select value={filterExpertise} onChange={(e) => setFilterExpertise(e.target.value)}
             className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 focus:border-pink-400">
             <option value="">All Expertise</option>
-            {EXPERTISE_LIST.map((e) => <option key={e} value={e}>{e}</option>)}
+            {allExpertise.map((e) => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
+        <p className="text-xs text-gray-500 mt-3">{filtered.length} mentors available</p>
       </div>
 
       {/* Mentor Cards */}
       {isLoading ? (
         <div className="text-center py-16 text-gray-400">Loading mentors...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400"><GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No mentors found.</p></div>
+        <div className="text-center py-16 text-gray-400"><GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No mentors found. Be the first to sign up!</p></div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((mentor) => {
-            const booked = bookedIds.has(mentor.id);
+            const booked = bookedIds.has(mentor._id);
             return (
-              <div key={mentor.id} className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5 flex flex-col">
+              <div key={mentor._id} className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5 flex flex-col">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     {mentor.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-900 truncate">{mentor.name}</h3>
-                    <p className="text-xs text-violet-600 font-medium">{mentor.expertise}</p>
-                    <p className="text-xs text-gray-500">{mentor.industry} · {mentor.experience}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {mentor.expertise?.slice(0, 2).map((exp) => (
+                        <span key={exp} className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{exp}</span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{mentor.professionalDetails?.industry || 'General'}</p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-3 flex-1">{mentor.bio}</p>
+                <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-3">{mentor.mentorBio || 'Experienced mentor ready to help.'}</p>
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />{mentor.rating} · {mentor.sessions} sessions</span>
-                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{mentor.availability}</span>
+                  <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />{(mentor.mentorRating || 0).toFixed(1)} · {mentor.mentorSessions || 0} sessions</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{mentor.mentorAvailability}</span>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-semibold text-slate-800">${mentor.hourlyRate || 0}/hr</span>
                 </div>
                 <button
                   onClick={() => handleBook(mentor)}

@@ -25,23 +25,40 @@ export const CostEstimationTool = () => {
   const [result, setResult] = useState<CostResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    if (!form.businessType) errors.businessType = 'Please select a business type';
+    if (!form.stage) errors.stage = 'Please select your current stage';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
     setResult(null);
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/ai/estimate-cost`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'No error details');
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const data = await res.json();
       setResult(data);
-    } catch {
-      setError('Failed to generate cost estimate. Please try again.');
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Unknown error';
+      console.error('Cost estimate error:', errorMsg);
+      setError(`Failed to generate cost estimate: ${errorMsg}. Please ensure the backend server is running on ${API_BASE}.`);
     } finally {
       setIsLoading(false);
     }
@@ -72,25 +89,31 @@ export const CostEstimationTool = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Business Type *</label>
               <select
                 value={form.businessType}
-                onChange={(e) => setForm({ ...form, businessType: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
-                required
+                onChange={(e) => {
+                  setForm({ ...form, businessType: e.target.value });
+                  if (fieldErrors.businessType) setFieldErrors({ ...fieldErrors, businessType: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.businessType ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               >
                 <option value="">Select type</option>
                 {BUSINESS_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
+              {fieldErrors.businessType && <p className="text-red-500 text-xs mt-1">{fieldErrors.businessType}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Current Stage *</label>
               <select
                 value={form.stage}
-                onChange={(e) => setForm({ ...form, stage: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
-                required
+                onChange={(e) => {
+                  setForm({ ...form, stage: e.target.value });
+                  if (fieldErrors.stage) setFieldErrors({ ...fieldErrors, stage: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.stage ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               >
                 <option value="">Select stage</option>
                 {STAGES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
+              {fieldErrors.stage && <p className="text-red-500 text-xs mt-1">{fieldErrors.stage}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Team Size</label>

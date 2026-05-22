@@ -33,12 +33,25 @@ export const IdeaValidationTool = () => {
   const [result, setResult] = useState<ValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    if (!form.title.trim()) errors.title = 'Business idea title is required';
+    if (!form.targetAudience.trim()) errors.targetAudience = 'Target audience is required';
+    if (!form.problem.trim()) errors.problem = 'Please describe the problem you are solving';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
     setResult(null);
+    
+    if (!validateForm()) return;
+    
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/ai/validate-idea`, {
         method: 'POST',
@@ -78,30 +91,42 @@ export const IdeaValidationTool = () => {
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Business Idea Title *</label>
               <input
-                type="text" value={form.title} required
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+                type="text" value={form.title}
+                onChange={(e) => {
+                  setForm({ ...form, title: e.target.value });
+                  if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                 placeholder="e.g., AI-Powered Tutoring Platform"
               />
+              {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Target Audience *</label>
               <input
-                type="text" value={form.targetAudience} required
-                onChange={(e) => setForm({ ...form, targetAudience: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+                type="text" value={form.targetAudience}
+                onChange={(e) => {
+                  setForm({ ...form, targetAudience: e.target.value });
+                  if (fieldErrors.targetAudience) setFieldErrors({ ...fieldErrors, targetAudience: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.targetAudience ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                 placeholder="e.g., High school students aged 14-18"
               />
+              {fieldErrors.targetAudience && <p className="text-red-500 text-xs mt-1">{fieldErrors.targetAudience}</p>}
             </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Problem You're Solving *</label>
             <textarea
-              value={form.problem} required rows={3}
-              onChange={(e) => setForm({ ...form, problem: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+              value={form.problem} rows={3}
+              onChange={(e) => {
+                setForm({ ...form, problem: e.target.value });
+                if (fieldErrors.problem) setFieldErrors({ ...fieldErrors, problem: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.problem ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               placeholder="Describe the pain point your target audience faces..."
             />
+            {fieldErrors.problem && <p className="text-red-500 text-xs mt-1">{fieldErrors.problem}</p>}
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>

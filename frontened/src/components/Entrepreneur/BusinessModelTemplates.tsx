@@ -88,23 +88,44 @@ export const BusinessModelTemplates = () => {
 
   const categories = ['Technology', 'Healthcare', 'Education', 'E-commerce', 'Finance', 'Sustainability', 'Entertainment', 'Other'];
 
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    if (!aiForm.title.trim()) errors.title = 'Business title is required';
+    if (!aiForm.description.trim()) errors.description = 'Description is required - please describe your business idea';
+    if (!aiForm.category) errors.category = 'Please select a category';
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsGenerating(true);
     setAiError(null);
     setAiCanvas(null);
     setActiveTemplate(null);
+    
+    if (!validateForm()) return;
+    
+    setIsGenerating(true);
     try {
+      console.log('Fetching:', `${API_BASE}/api/ai/business-model`);
       const res = await fetch(`${API_BASE}/api/ai/business-model`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(aiForm),
       });
-      if (!res.ok) throw new Error('Failed to generate');
+      console.log('Response status:', res.status);
+      if (!res.ok) {
+        const errorText = await res.text().catch(() => 'No error details');
+        console.log('Error response:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
       const data = await res.json();
       setAiCanvas(data);
-    } catch {
-      setAiError('AI generation failed. Please try again.');
+    } catch (err: any) {
+      console.error('Business Model API error:', err);
+      setAiError(`Failed: ${err?.message || 'Unknown error'}. Check console for details.`);
     } finally {
       setIsGenerating(false);
     }
@@ -149,38 +170,55 @@ export const BusinessModelTemplates = () => {
           <span className="text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium">AI Powered</span>
         </div>
         <form onSubmit={handleGenerate} className="grid md:grid-cols-3 gap-4 mb-4">
-          <input
-            type="text"
-            placeholder="Your business title *"
-            value={aiForm.title}
-            onChange={(e) => setAiForm({ ...aiForm, title: e.target.value })}
-            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm"
-            required
-          />
-          <select
-            value={aiForm.category}
-            onChange={(e) => setAiForm({ ...aiForm, category: e.target.value })}
-            className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm"
-          >
-            <option value="">Select category</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div>
+            <input
+              type="text"
+              placeholder="Your business title *"
+              value={aiForm.title}
+              onChange={(e) => {
+                setAiForm({ ...aiForm, title: e.target.value });
+                if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm ${fieldErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+            />
+            {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+          </div>
+          <div>
+            <select
+              value={aiForm.category}
+              onChange={(e) => {
+                setAiForm({ ...aiForm, category: e.target.value });
+                if (fieldErrors.category) setFieldErrors({ ...fieldErrors, category: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm ${fieldErrors.category ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+            >
+              <option value="">Select category *</option>
+              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            {fieldErrors.category && <p className="text-red-500 text-xs mt-1">{fieldErrors.category}</p>}
+          </div>
           <button
             type="submit"
-            disabled={isGenerating || !aiForm.title}
+            disabled={isGenerating}
             className="flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
           >
             {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Wand2 className="w-4 h-4" /> Generate with AI</>}
           </button>
         </form>
-        <textarea
-          placeholder="Brief description of your business idea..."
-          value={aiForm.description}
-          onChange={(e) => setAiForm({ ...aiForm, description: e.target.value })}
-          rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm"
-        />
-        {aiError && <p className="text-red-500 text-sm mt-2">{aiError}</p>}
+        <div>
+          <textarea
+            placeholder="Brief description of your business idea *"
+            value={aiForm.description}
+            onChange={(e) => {
+              setAiForm({ ...aiForm, description: e.target.value });
+              if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
+            }}
+            rows={3}
+            className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400 text-sm ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+          />
+          {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
+        </div>
+        {aiError && <p className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded-lg">{aiError}</p>}
       </div>
 
       {/* Canvas Display */}

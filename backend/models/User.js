@@ -66,6 +66,70 @@ const userSchema = new mongoose.Schema(
       newMessages: { type: Boolean, default: true },
       marketingEmails: { type: Boolean, default: false },
     },
+    // Mentor profile fields
+    isMentor: {
+      type: Boolean,
+      default: false,
+    },
+    mentorBio: {
+      type: String,
+      default: '',
+    },
+    expertise: {
+      type: [String],
+      default: [],
+    },
+    hourlyRate: {
+      type: Number,
+      default: 0,
+    },
+    mentorAvailability: {
+      type: String,
+      default: 'Flexible',
+    },
+    mentorRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    mentorSessions: {
+      type: Number,
+      default: 0,
+    },
+    // Co-founder profile fields
+    seekingCoFounder: {
+      type: Boolean,
+      default: false,
+    },
+    coFounderBio: {
+      type: String,
+      default: '',
+    },
+    coFounderSkills: {
+      type: [String],
+      default: [],
+    },
+    equityExpectation: {
+      type: String,
+      default: '',
+    },
+    coFounderCommitment: {
+      type: String,
+      enum: ['Full-time', 'Part-time', 'Flexible'],
+      default: 'Full-time',
+    },
+    // Resource tracking
+    savedResources: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'Resource',
+      default: [],
+    },
+    enrolledWebinars: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'Webinar',
+      default: [],
+    },
   },
   { timestamps: true }
 );

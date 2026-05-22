@@ -1,51 +1,200 @@
-import React, { useState } from 'react';
-import { Users, Search, MessageSquare, Star } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Users, Search, MessageSquare, Star, Plus, X } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
+import { cofounderApi } from '../../api/featuresApi';
 
-const COFOUNDER_PROFILES = [
-  { id: 'cf1', name: 'Alex Rivera', role: 'Technical Co-Founder', skills: ['React', 'Node.js', 'AWS', 'Machine Learning'], industry: 'Technology', stage: 'Idea / Pre-MVP', bio: 'Full-stack engineer with 7 years of experience. Built 3 side projects. Looking to join a mission-driven startup as CTO.', commitment: 'Full-time', equity: '20-40%', location: 'Remote', avatar: 'AR' },
-  { id: 'cf2', name: 'Mei Zhang', role: 'Business Co-Founder', skills: ['Sales', 'Marketing', 'Operations', 'Fundraising'], industry: 'E-commerce', stage: 'MVP / Prototype', bio: 'Ex-McKinsey consultant turned entrepreneur. Have a strong network in the e-commerce and retail space.', commitment: 'Full-time', equity: '25-35%', location: 'Remote / Hybrid', avatar: 'MZ' },
-  { id: 'cf3', name: 'Jordan Smith', role: 'Design Co-Founder', skills: ['UI/UX', 'Figma', 'Branding', 'User Research'], industry: 'SaaS', stage: 'Idea / Pre-MVP', bio: 'Product designer with experience at two funded startups. Believe great design is a competitive advantage.', commitment: 'Part-time initially', equity: '15-25%', location: 'Remote', avatar: 'JS' },
-  { id: 'cf4', name: 'Fatima Al-Rashid', role: 'Domain Expert Co-Founder', skills: ['Healthcare', 'Clinical Research', 'Regulatory', 'Partnerships'], industry: 'Healthcare', stage: 'Idea / Pre-MVP', bio: 'Medical doctor with 8 years clinical experience. Passionate about using technology to improve patient outcomes.', commitment: 'Part-time', equity: '20-30%', location: 'Hybrid', avatar: 'FA' },
-  { id: 'cf5', name: 'Carlos Mendez', role: 'Finance Co-Founder', skills: ['Financial Modeling', 'Fundraising', 'Accounting', 'VC Relations'], industry: 'FinTech', stage: 'Early Traction', bio: 'Former investment banker with startup CFO experience. Helped raise $10M+ across multiple companies.', commitment: 'Full-time', equity: '20-35%', location: 'Remote / Onsite', avatar: 'CM' },
-  { id: 'cf6', name: 'Nina Patel', role: 'Growth Co-Founder', skills: ['SEO', 'Performance Marketing', 'Content', 'Analytics'], industry: 'Education', stage: 'MVP / Prototype', bio: 'Growth hacker who scaled an EdTech startup to 50K users from zero. Obsessed with data-driven marketing.', commitment: 'Full-time', equity: '20-30%', location: 'Remote', avatar: 'NP' },
-];
-
-const ALL_SKILLS = [...new Set(COFOUNDER_PROFILES.flatMap((p) => p.skills))].sort();
-const ALL_INDUSTRIES = [...new Set(COFOUNDER_PROFILES.map((p) => p.industry))].sort();
+interface CoFounder {
+  _id: string;
+  name: string;
+  coFounderBio: string;
+  coFounderSkills: string[];
+  equityExpectation: string;
+  coFounderCommitment: string;
+  professionalDetails?: {
+    industry?: string;
+  };
+}
 
 export const CoFounderFinder = () => {
+  const [coFounders, setCoFounders] = useState<CoFounder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterSkill, setFilterSkill] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('');
   const [filterCommitment, setFilterCommitment] = useState('');
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [showBecomeCoFounder, setShowBecomeCoFounder] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [allSkills, setAllSkills] = useState<string[]>([]);
   const { openChatWithContact } = useChat();
 
-  const filtered = COFOUNDER_PROFILES.filter((p) => {
-    const q = search.toLowerCase();
-    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.bio.toLowerCase().includes(q) || p.skills.some((s) => s.toLowerCase().includes(q)) || p.role.toLowerCase().includes(q);
-    const matchSkill = !filterSkill || p.skills.includes(filterSkill);
-    const matchIndustry = !filterIndustry || p.industry === filterIndustry;
-    const matchCommitment = !filterCommitment || p.commitment.includes(filterCommitment);
-    return matchSearch && matchSkill && matchIndustry && matchCommitment;
+  const [form, setForm] = useState({
+    coFounderBio: '',
+    coFounderSkills: [] as string[],
+    equityExpectation: '',
+    coFounderCommitment: 'Full-time',
   });
 
-  const handleConnect = (profile: typeof COFOUNDER_PROFILES[0]) => {
-    setRequestedIds((prev) => new Set(prev).add(profile.id));
-    openChatWithContact({ id: profile.id, name: profile.name, role: 'Entrepreneur' });
+  const fetchCoFounders = async () => {
+    setIsLoading(true);
+    try {
+      const data = await cofounderApi.getCoFounders({
+        skills: filterSkill,
+        industry: filterIndustry,
+        commitment: filterCommitment,
+      });
+      setCoFounders(data);
+    } catch {
+      setCoFounders([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const fetchSkills = async () => {
+    try {
+      const skills = await cofounderApi.getCoFounderSkills();
+      setAllSkills(skills);
+    } catch {
+      setAllSkills([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchCoFounders();
+    fetchSkills();
+  }, [filterSkill, filterIndustry, filterCommitment]);
+
+  const filtered = coFounders.filter((p) => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.coFounderBio?.toLowerCase().includes(q) || p.coFounderSkills?.some((s) => s.toLowerCase().includes(q));
+    return matchSearch;
+  });
+
+  const handleConnect = (profile: CoFounder) => {
+    setRequestedIds((prev) => new Set(prev).add(profile._id));
+    openChatWithContact({ id: profile._id, name: profile.name, role: 'Entrepreneur' });
+  };
+
+  const handleBecomeCoFounder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await cofounderApi.becomeCoFounder(form);
+      setShowBecomeCoFounder(false);
+      fetchCoFounders();
+      alert('You are now listed as seeking a co-founder!');
+    } catch {
+      alert('Failed to register. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleSkill = (skill: string) => {
+    setForm((prev) => ({
+      ...prev,
+      coFounderSkills: prev.coFounderSkills.includes(skill)
+        ? prev.coFounderSkills.filter((s) => s !== skill)
+        : [...prev.coFounderSkills, skill],
+    }));
+  };
+
+  const industries = [...new Set(coFounders.map((p) => p.professionalDetails?.industry).filter(Boolean))].sort();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Users className="w-6 h-6 text-pink-600" />
-          <h2 className="text-2xl font-bold text-slate-950">Co-Founder Finder</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <Users className="w-6 h-6 text-pink-600" />
+              <h2 className="text-2xl font-bold text-slate-950">Co-Founder Finder</h2>
+            </div>
+            <p className="text-gray-600">Find the right co-founder with complementary skills to build your startup together.</p>
+          </div>
+          <button
+            onClick={() => setShowBecomeCoFounder(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
+          >
+            <Plus className="w-4 h-4" /> List Me as Seeking
+          </button>
         </div>
-        <p className="text-gray-600">Find the right co-founder with complementary skills to build your startup together.</p>
       </div>
+
+      {/* Become Co-Founder Modal */}
+      {showBecomeCoFounder && (
+        <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-slate-800">List Yourself as Seeking Co-Founder</h3>
+            <button onClick={() => setShowBecomeCoFounder(false)} className="p-1 hover:bg-gray-100 rounded-full">
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+          <form onSubmit={handleBecomeCoFounder} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Your Bio</label>
+              <textarea
+                value={form.coFounderBio}
+                onChange={(e) => setForm({ ...form, coFounderBio: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                rows={3}
+                placeholder="Describe your background, what you bring, and what you're looking for..."
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Your Skills</label>
+              <div className="flex flex-wrap gap-2">
+                {['React', 'Node.js', 'Python', 'Design', 'Marketing', 'Sales', 'Finance', 'Operations', 'Product', 'Business Dev'].map((skill) => (
+                  <button
+                    key={skill}
+                    type="button"
+                    onClick={() => toggleSkill(skill)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      form.coFounderSkills.includes(skill) ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {skill}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Equity Expectation</label>
+                <input
+                  type="text"
+                  value={form.equityExpectation}
+                  onChange={(e) => setForm({ ...form, equityExpectation: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                  placeholder="e.g., 20-40%"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Commitment</label>
+                <select
+                  value={form.coFounderCommitment}
+                  onChange={(e) => setForm({ ...form, coFounderCommitment: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                >
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Flexible">Flexible</option>
+                </select>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isSubmitting || form.coFounderSkills.length === 0}
+              className="w-full py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50"
+            >
+              {isSubmitting ? 'Submitting...' : 'List My Profile'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5">
@@ -55,19 +204,19 @@ export const CoFounderFinder = () => {
             <input
               type="text" value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, skill, role..."
+              placeholder="Search by name, skill..."
               className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
             />
           </div>
           <select value={filterSkill} onChange={(e) => setFilterSkill(e.target.value)}
             className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 focus:border-pink-400">
             <option value="">All Skills</option>
-            {ALL_SKILLS.map((s) => <option key={s} value={s}>{s}</option>)}
+            {allSkills.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
           <select value={filterIndustry} onChange={(e) => setFilterIndustry(e.target.value)}
             className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 focus:border-pink-400">
             <option value="">All Industries</option>
-            {ALL_INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+            {industries.map((i) => <option key={i} value={i}>{i}</option>)}
           </select>
           <select value={filterCommitment} onChange={(e) => setFilterCommitment(e.target.value)}
             className="px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 focus:border-pink-400">
@@ -80,36 +229,39 @@ export const CoFounderFinder = () => {
       </div>
 
       {/* Profile Cards */}
-      {filtered.length === 0 ? (
+      {isLoading ? (
+        <div className="text-center py-16 text-gray-400">Loading...</div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p>No co-founders match your filters.</p>
+          <p>No co-founders found. Be the first to list yourself!</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((profile) => {
-            const requested = requestedIds.has(profile.id);
+            const requested = requestedIds.has(profile._id);
             return (
-              <div key={profile.id} className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5 flex flex-col">
+              <div key={profile._id} className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-5 flex flex-col">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-violet-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                    {profile.avatar}
+                    {profile.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-slate-900 truncate">{profile.name}</h3>
-                    <p className="text-xs text-pink-600 font-medium">{profile.role}</p>
-                    <p className="text-xs text-gray-500">{profile.industry} · {profile.location}</p>
+                    <p className="text-xs text-gray-500">{profile.professionalDetails?.industry || 'Startup'} · {profile.coFounderCommitment}</p>
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-3 flex-1">{profile.bio}</p>
+                <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-3">{profile.coFounderBio || 'Looking for a co-founder opportunity.'}</p>
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {profile.skills.map((skill) => (
+                  {profile.coFounderSkills?.slice(0, 4).map((skill) => (
                     <span key={skill} className="text-xs bg-pink-50 text-pink-700 px-2 py-0.5 rounded-full border border-pink-100">{skill}</span>
                   ))}
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <span className="bg-gray-100 px-2 py-1 rounded-full">{profile.commitment}</span>
-                  <span className="bg-violet-50 text-violet-700 px-2 py-1 rounded-full">Equity: {profile.equity}</span>
+                  <span className="bg-gray-100 px-2 py-1 rounded-full">{profile.coFounderCommitment}</span>
+                  {profile.equityExpectation && (
+                    <span className="bg-violet-50 text-violet-700 px-2 py-1 rounded-full">Equity: {profile.equityExpectation}</span>
+                  )}
                 </div>
                 <button
                   onClick={() => handleConnect(profile)}

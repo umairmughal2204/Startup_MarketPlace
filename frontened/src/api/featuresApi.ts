@@ -1,0 +1,211 @@
+const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
+
+const getHeaders = () => {
+  const userId = localStorage.getItem('userId');
+  return {
+    'Content-Type': 'application/json',
+    'user-id': userId || '',
+  };
+};
+
+// ========== MENTORSHIP API ==========
+export const mentorshipApi = {
+  async getMentors() {
+    const res = await fetch(`${API_BASE}/api/features/mentors`);
+    if (!res.ok) throw new Error('Failed to fetch mentors');
+    return res.json();
+  },
+
+  async becomeMentor(data: {
+    mentorBio: string;
+    expertise: string[];
+    hourlyRate: number;
+    mentorAvailability: string;
+  }) {
+    const res = await fetch(`${API_BASE}/api/features/become-mentor`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to become mentor');
+    return res.json();
+  },
+
+  async bookSession(mentorId: string) {
+    const res = await fetch(`${API_BASE}/api/features/mentors/${mentorId}/book`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to book session');
+    return res.json();
+  },
+};
+
+// ========== CO-FOUNDER API ==========
+export const cofounderApi = {
+  async getCoFounders(filters?: { skills?: string; industry?: string; commitment?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.skills) params.append('skills', filters.skills);
+    if (filters?.industry) params.append('industry', filters.industry);
+    if (filters?.commitment) params.append('commitment', filters.commitment);
+    
+    const res = await fetch(`${API_BASE}/api/features/cofounders?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch co-founders');
+    return res.json();
+  },
+
+  async becomeCoFounder(data: {
+    coFounderBio: string;
+    coFounderSkills: string[];
+    equityExpectation: string;
+    coFounderCommitment: string;
+  }) {
+    const res = await fetch(`${API_BASE}/api/features/become-cofounder`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to become co-founder seeker');
+    return res.json();
+  },
+
+  async getCoFounderSkills() {
+    const res = await fetch(`${API_BASE}/api/features/cofounder-skills`);
+    if (!res.ok) throw new Error('Failed to fetch skills');
+    return res.json();
+  },
+};
+
+// ========== WEBINAR API ==========
+export const webinarApi = {
+  async getWebinars(filters?: { category?: string; level?: string; status?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.level) params.append('level', filters.level);
+    if (filters?.status) params.append('status', filters.status);
+    
+    const res = await fetch(`${API_BASE}/api/features/webinars?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch webinars');
+    return res.json();
+  },
+
+  async getWebinar(id: string) {
+    const res = await fetch(`${API_BASE}/api/features/webinars/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch webinar');
+    return res.json();
+  },
+
+  async createWebinar(data: {
+    title: string;
+    description: string;
+    instructor: string;
+    category: string;
+    level: string;
+    duration: string;
+    date: string;
+    meetingUrl?: string;
+    tags?: string[];
+    maxParticipants?: number;
+  }) {
+    const res = await fetch(`${API_BASE}/api/features/webinars`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create webinar');
+    return res.json();
+  },
+
+  async enroll(webinarId: string) {
+    const res = await fetch(`${API_BASE}/api/features/webinars/${webinarId}/enroll`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to enroll');
+    return res.json();
+  },
+
+  async rateWebinar(webinarId: string, rating: number) {
+    const res = await fetch(`${API_BASE}/api/features/webinars/${webinarId}/rate`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ rating }),
+    });
+    if (!res.ok) throw new Error('Failed to rate webinar');
+    return res.json();
+  },
+
+  async getMyEnrolledWebinars() {
+    const res = await fetch(`${API_BASE}/api/features/my-enrolled-webinars`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch enrolled webinars');
+    return res.json();
+  },
+};
+
+// ========== RESOURCE API ==========
+export const resourceLibraryApi = {
+  async getResources(filters?: { type?: string; category?: string }) {
+    const params = new URLSearchParams();
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.category) params.append('category', filters.category);
+    
+    const res = await fetch(`${API_BASE}/api/features/resources?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch resources');
+    return res.json();
+  },
+
+  async getResource(id: string) {
+    const res = await fetch(`${API_BASE}/api/features/resources/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch resource');
+    return res.json();
+  },
+
+  async createResource(data: {
+    title: string;
+    description: string;
+    type: string;
+    category: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize?: number;
+    fileType?: string;
+    readTime?: string;
+    tags?: string[];
+  }) {
+    const res = await fetch(`${API_BASE}/api/features/resources`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error('Failed to create resource');
+    return res.json();
+  },
+
+  async trackDownload(resourceId: string) {
+    const res = await fetch(`${API_BASE}/api/features/resources/${resourceId}/download`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to track download');
+    return res.json();
+  },
+
+  async toggleSave(resourceId: string) {
+    const res = await fetch(`${API_BASE}/api/features/resources/${resourceId}/save`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to save resource');
+    return res.json();
+  },
+
+  async getMySavedResources() {
+    const res = await fetch(`${API_BASE}/api/features/my-saved-resources`, {
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch saved resources');
+    return res.json();
+  },
+};
