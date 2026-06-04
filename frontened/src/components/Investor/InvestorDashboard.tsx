@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Lightbulb, MessageSquare, Settings, GraduationCap, Library } from 'lucide-react';
+import { LayoutDashboard, Lightbulb, MessageSquare, Settings } from 'lucide-react';
 import { Sidebar } from '../shared/Sidebar';
 import { NotificationCenter } from '../shared/NotificationCenter';
 import { ChatWidget } from '../shared/ChatWidget';
@@ -7,8 +7,6 @@ import { InvestorHome } from './InvestorHome';
 import { IdeaBrowser } from './IdeaBrowser';
 import { MyFeedback } from './MyFeedback';
 import { SettingsPage } from '../Entrepreneur/SettingsPage';
-import { MentorshipMarketplace } from '../shared/MentorshipMarketplace';
-import { ResourceLibrary } from '../shared/ResourceLibrary';
 
 interface InvestorDashboardProps {
   userName: string;
@@ -22,8 +20,7 @@ export const InvestorDashboard = ({ userName, onLogout }: InvestorDashboardProps
     { id: 'dashboard', label: 'Dashboard Home', icon: <LayoutDashboard className="w-5 h-5" /> },
     { id: 'ideas', label: 'Browse Ideas', icon: <Lightbulb className="w-5 h-5" /> },
     { id: 'feedback', label: 'My Feedback', icon: <MessageSquare className="w-5 h-5" /> },
-    { id: 'mentorship', label: 'Mentorship', icon: <GraduationCap className="w-5 h-5" /> },
-    { id: 'resources', label: 'Resource Library', icon: <Library className="w-5 h-5" /> },
+    
     { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
@@ -35,10 +32,7 @@ export const InvestorDashboard = ({ userName, onLogout }: InvestorDashboardProps
         return <IdeaBrowser />;
       case 'feedback':
         return <MyFeedback />;
-      case 'mentorship':
-        return <MentorshipMarketplace />;
-      case 'resources':
-        return <ResourceLibrary />;
+      
       case 'settings':
         return <SettingsPage userName={userName} />;
       default:

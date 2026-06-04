@@ -796,9 +796,9 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 relative">
-             <p>© Copyright. All. All rights reserved.</p>
-          </div>
+           <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-xs text-slate-500 relative">
+             <p className="text-center w-full">© Copyright. All rights reserved.</p>
+           </div>
         </div>
       </footer>
     </div>
