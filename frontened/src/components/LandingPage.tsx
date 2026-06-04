@@ -225,7 +225,7 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
           <div className="hidden md:flex items-center gap-8 text-sm text-slate-300">
             <button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors">Features</button>
             <button onClick={() => scrollToSection('how-it-works')} className="hover:text-white transition-colors">How it Works</button>
-            <button onClick={() => scrollToSection('rules')} className="hover:text-white transition-colors">Rules</button>
+            <button onClick={() => scrollToSection('rules')} className="hover:text-white transition-colors">Roles</button>
             <button onClick={onGetStarted} className="bg-[#00a3a3] hover:bg-teal-500 text-white px-6 py-2 rounded-md font-medium transition-colors">
               Login/Signup
             </button>
@@ -707,98 +707,117 @@ export const LandingPage = ({ onGetStarted }: LandingPageProps) => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0f172a] pt-16 pb-8">
+      <footer className="bg-[#0f172a] pt-16 pb-8 text-sm">
         <div className="container mx-auto px-6">
-          {/* Links Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12 pb-12 border-b border-slate-800">
+
+          {/* TOP GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 border-b border-slate-800 pb-12">
+
+            {/* Brand */}
             <div className="lg:col-span-2">
-               <div className="flex items-center gap-2 mb-6">
-                  <span className="text-lg font-bold text-white">Startup LaunchPad</span>
-                </div>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
-                  A modern platform connecting entrepreneurs, investors, and suppliers. Build your network, secure funding, and scale your vision.
-                </p>
-                <div className="flex gap-4">
-                  {[Facebook, Twitter, Linkedin, Instagram].map((Icon, i) => (
-                    <a key={i} href="#" className="w-8 h-8 rounded border border-slate-700 flex items-center justify-center text-slate-400 hover:bg-[#008b8b] hover:text-white hover:border-[#008b8b] transition-all">
-                      <Icon className="w-4 h-4" />
-                    </a>
-                  ))}
-                </div>
+              <div className="text-lg font-bold text-white mb-4">
+                Startup LaunchPad
+              </div>
+
+              <p className="text-slate-400 leading-relaxed max-w-sm mb-6">
+                A modern platform connecting entrepreneurs, investors, and suppliers. Build your network, secure funding, and scale your vision.
+              </p>
+
+              {/* <div className="flex gap-3">
+                {[Facebook, Twitter, Linkedin, Instagram].map((Icon, i) => (
+                  <a
+                    key={i}
+                    href="#"
+                    className="w-9 h-9 flex items-center justify-center rounded border border-slate-700 text-slate-400 hover:bg-teal-600 hover:text-white hover:border-teal-600 transition"
+                  >
+                    <Icon className="w-4 h-4" />
+                  </a>
+                ))}
+              </div> */}
             </div>
 
+            {/* Platform */}
             <div>
-              <h4 className="font-semibold text-white mb-6 text-sm">Platform</h4>
-              <ul className="space-y-4 text-sm text-slate-400">
-                <li><button onClick={() => scrollToSection('features')} className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Features</button></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Entrepreneurs</a></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Suppliers</a></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Investors</a></li>
+              <h4 className="text-white font-semibold mb-5">Platform</h4>
+              <ul className="space-y-3 text-slate-400">
+                <li><button type="button" onClick={() => scrollToSection('features')} className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Features</button></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Entrepreneurs</a></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Suppliers</a></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> For Investors</a></li>
               </ul>
             </div>
 
+            {/* Resources */}
             <div>
-              <h4 className="font-semibold text-white mb-6 text-sm">Resources</h4>
-              <ul className="space-y-4 text-sm text-slate-400">
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Marketplace</a></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Idea Validation</a></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Help Center</a></li>
-                <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Community</a></li>
+              <h4 className="text-white font-semibold mb-5">Resources</h4>
+              <ul className="space-y-3 text-slate-400">
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Marketplace</a></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Idea Validation</a></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Help Center</a></li>
+                <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Community</a></li>
               </ul>
             </div>
 
-            <div>
-              <div className="grid grid-cols-2 gap-8">
-                <div>
-                  <h4 className="font-semibold text-white mb-6 text-sm">Company</h4>
-                  <ul className="space-y-4 text-sm text-slate-400">
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> About Us</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Careers</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Blog</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Contact</a></li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-white mb-6 text-sm">Legal</h4>
-                  <ul className="space-y-4 text-sm text-slate-400">
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Terms of Service</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Privacy Policy</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Cookie Policy</a></li>
-                    <li><a href="#" className="hover:text-teal-400 transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Security Details</a></li>
-                  </ul>
-                </div>
+            {/* Company + Legal */}
+            <div className="grid grid-cols-2 gap-8">
+
+              <div>
+                <h4 className="text-white font-semibold mb-5">Company</h4>
+                <ul className="space-y-3 text-slate-400">
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> About Us</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Careers</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Blog</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Contact</a></li>
+                </ul>
               </div>
+
+              <div>
+                <h4 className="text-white font-semibold mb-5">Legal</h4>
+                <ul className="space-y-3 text-slate-400">
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Terms</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Privacy</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Cookies</a></li>
+                  <li><a href="#" className="hover:text-teal-400 flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Security</a></li>
+                </ul>
+              </div>
+
             </div>
           </div>
 
-          {/* Contact Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-teal-400"><Mail className="w-5 h-5" /></div>
+          {/* CONTACT ROW */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-10 border-b border-slate-800">
+
+            <div className="flex items-center gap-4">
+              <Mail className="text-teal-400 w-5 h-5" />
               <div>
-                <div className="text-white text-sm font-medium mb-1">Email Us</div>
-                <div className="text-slate-400 text-sm">support@startuplaunchpad.com</div>
+                <div className="text-white font-medium">Email Us</div>
+                <div className="text-slate-400">support@startuplaunchpad.com</div>
               </div>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-blue-400"><Phone className="w-5 h-5" /></div>
+
+            <div className="flex items-center gap-4">
+              <Phone className="text-blue-400 w-5 h-5" />
               <div>
-                <div className="text-white text-sm font-medium mb-1">Call Us</div>
-                <div className="text-slate-400 text-sm">+34 50 33976</div>
+                <div className="text-white font-medium">Call Us</div>
+                <div className="text-slate-400">+34 50 33976</div>
               </div>
             </div>
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded bg-[#1e293b] flex items-center justify-center shrink-0 text-purple-400"><MapPin className="w-5 h-5" /></div>
+
+            <div className="flex items-center gap-4">
+              <MapPin className="text-purple-400 w-5 h-5" />
               <div>
-                <div className="text-white text-sm font-medium mb-1">Visit Us</div>
-                <div className="text-slate-400 text-sm">123 Innovation Ave, Tech City, TC 10010</div>
+                <div className="text-white font-medium">Visit Us</div>
+                <div className="text-slate-400">123 Innovation Ave, Tech City, TC 10010</div>
               </div>
             </div>
+
           </div>
 
-           <div className="flex flex-col md:flex-row items-center justify-center gap-4 text-xs text-slate-500 relative">
-             <p className="text-center w-full">© Copyright. All rights reserved.</p>
-           </div>
+          {/* BOTTOM */}
+          <div className="text-center text-slate-500 text-xs pt-6">
+            © Copyright. All rights reserved.
+          </div>
+
         </div>
       </footer>
     </div>
