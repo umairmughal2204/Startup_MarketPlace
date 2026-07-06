@@ -72,8 +72,8 @@ async function analyzeIdeaWithAI(title, category, description) {
   const concerns = await generateConcerns(description, aiScore);
 
   return {
-    marketFit: Math.min(10, aiScore * 0.9 + 0.5),
-    feasibility: Math.min(10, aiScore * 0.85 + 0.8),
+    marketFit: parseFloat(Math.min(10, aiScore * 0.9 + 0.5).toFixed(1)),
+    feasibility: parseFloat(Math.min(10, aiScore * 0.85 + 0.8).toFixed(1)),
     aiScore: parseFloat(aiScore.toFixed(1)),
     strengths,
     suggestions,

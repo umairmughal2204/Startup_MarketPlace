@@ -40,6 +40,8 @@ export const SubmitIdea = () => {
     'Other',
   ];
 
+  const formatScore = (score: number) => score.toFixed(1);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -266,7 +268,7 @@ export const SubmitIdea = () => {
                     <span className="text-sm font-semibold text-gray-700">Market Fit</span>
                   </div>
                   <div className="text-3xl font-bold text-pink-600">
-                    {aiAnalysis.marketFit}/10
+                    {formatScore(aiAnalysis.marketFit)}/10
                   </div>
                 </div>
                 <div className="bg-violet-50 rounded-2xl p-4 border border-violet-100">
@@ -275,7 +277,7 @@ export const SubmitIdea = () => {
                     <span className="text-sm font-semibold text-gray-700">Feasibility</span>
                   </div>
                   <div className="text-3xl font-bold text-violet-600">
-                    {aiAnalysis.feasibility}/10
+                    {formatScore(aiAnalysis.feasibility)}/10
                   </div>
                 </div>
               </div>
