@@ -136,3 +136,12 @@ p {
   color: var(--gray-700);
   line-height: 1.625;
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

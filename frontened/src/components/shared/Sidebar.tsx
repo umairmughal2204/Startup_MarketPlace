@@ -108,7 +108,7 @@ export const Sidebar = ({ role, userName, currentPage, menuItems, onNavigate, on
           )}
         </div>
 
-        <nav className="relative flex-1 p-4 overflow-y-auto">
+        <nav className="relative flex-1 p-4 overflow-y-auto no-scrollbar">
           <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.id}>
