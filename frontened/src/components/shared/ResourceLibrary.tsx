@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Library, Search, Download, Clock, FileText, BookOpen, Lightbulb, Filter, Plus, X, Upload } from 'lucide-react';
 import { resourceLibraryApi } from '../../api/featuresApi';
+import { isBlank } from '../../utils/validation';
 
 interface Resource {
   _id: string;
@@ -114,11 +115,25 @@ export const ResourceLibrary = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBlank(form.title) || isBlank(form.fileUrl) || isBlank(form.description) || isBlank(form.type) || isBlank(form.category)) {
+      alert('Please complete all required resource fields.');
+      return;
+    }
+    try {
+      new URL(form.fileUrl);
+    } catch {
+      alert('Please enter a valid file URL.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await resourceLibraryApi.createResource({
         ...form,
-        tags: form.tags.split(',').map((t) => t.trim()),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        fileUrl: form.fileUrl.trim(),
+        readTime: form.readTime.trim() || '5 min',
+        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
       });
       setShowCreate(false);
       fetchResources();

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, Lock, Shield, Building2, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { isValidEmail, isValidPhone } from '../../utils/validation';
 
 interface SettingsPageProps {
   userName: string;
@@ -72,6 +73,16 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
 
     if (!profileForm.name.trim() || !profileForm.email.trim()) {
       setStatusError('Name and email are required.');
+      return;
+    }
+
+    if (!isValidEmail(profileForm.email)) {
+      setStatusError('Please enter a valid email address.');
+      return;
+    }
+
+    if (profileForm.phone.trim() && !isValidPhone(profileForm.phone)) {
+      setStatusError('Please enter a valid phone number.');
       return;
     }
 

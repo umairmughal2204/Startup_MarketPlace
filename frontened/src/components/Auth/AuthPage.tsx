@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Rocket, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react';
 import { UserRole } from '../../context/AuthContext';
+import { isBlank, isValidEmail, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
 
 interface AuthPageProps {
   onLogin: (email: string, password: string, role: UserRole) => Promise<void>;
@@ -97,15 +98,83 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRole) return;
     setAuthError(null);
     setAuthMessage(null);
 
+    if (!selectedRole) {
+      setAuthError('Please select a role.');
+      return;
+    }
+
+    if (!isLogin && isBlank(formData.name)) {
+      setAuthError('Full name is required.');
+      return;
+    }
+
+    if (!isValidEmail(formData.email)) {
+      setAuthError('Please enter a valid email address.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (!isLogin) {
+      if (selectedRole === 'Entrepreneur') {
+        const year = parseValidatedNumber(professionalDetails.foundedYear || '', {
+          min: 1900,
+          max: new Date().getFullYear(),
+          integer: true,
+          label: 'Founded year',
+        });
+        if (
+          isBlank(professionalDetails.companyName) ||
+          isBlank(professionalDetails.industry) ||
+          isBlank(professionalDetails.businessStage) ||
+          year.error
+        ) {
+          setAuthError(year.error || 'Please complete all entrepreneur verification fields.');
+          return;
+        }
+      }
+
+      if (selectedRole === 'Supplier') {
+        const years = parseValidatedNumber(professionalDetails.yearsInBusiness || '', {
+          min: 0,
+          max: 100,
+          integer: true,
+          label: 'Years in business',
+        });
+        if (
+          isBlank(professionalDetails.businessName) ||
+          isBlank(professionalDetails.businessType) ||
+          isBlank(professionalDetails.productsServices) ||
+          years.error
+        ) {
+          setAuthError(years.error || 'Please complete all supplier verification fields.');
+          return;
+        }
+      }
+
+      if (
+        selectedRole === 'Investor' &&
+        (isBlank(professionalDetails.investmentFirm) ||
+          isBlank(professionalDetails.investmentRange) ||
+          isBlank(professionalDetails.investmentStage) ||
+          isBlank(professionalDetails.focusAreas))
+      ) {
+        setAuthError('Please complete all investor verification fields.');
+        return;
+      }
+    }
+
     try {
       if (isLogin) {
-        await onLogin(formData.email, formData.password, selectedRole);
+        await onLogin(formData.email.trim(), formData.password, selectedRole);
       } else {
-        await onRegister(formData.name, formData.email, formData.password, selectedRole, professionalDetails);
+        await onRegister(formData.name.trim(), formData.email.trim(), formData.password, selectedRole, professionalDetails);
         setAuthMessage('Registration submitted. Wait for admin approval.');
         setIsLogin(true);
       }
@@ -159,7 +228,7 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
               </div>
               <div>
                 <label className={labelClass}>Founded Year *</label>
-                <input type="number" value={professionalDetails.foundedYear || ''} onChange={(e) => updateDetails('foundedYear', e.target.value)} className={inputClass} required min="1900" max={new Date().getFullYear()} placeholder="2024" />
+                <input type="text" inputMode="numeric" value={professionalDetails.foundedYear || ''} onKeyDown={(e) => preventInvalidNumberKey(e)} onChange={(e) => updateDetails('foundedYear', sanitizeNumberInput(e.target.value, { maxLength: 4 }))} className={inputClass} required min="1900" max={new Date().getFullYear()} placeholder="2024" />
               </div>
             </div>
           </div>
@@ -192,7 +261,7 @@ export const AuthPage = ({ onLogin, onRegister, onBack }: AuthPageProps) => {
             </div>
             <div>
               <label className={labelClass}>Years in Business *</label>
-              <input type="number" value={professionalDetails.yearsInBusiness || ''} onChange={(e) => updateDetails('yearsInBusiness', e.target.value)} className={inputClass} required min="0" max="100" placeholder="5" />
+              <input type="text" inputMode="numeric" value={professionalDetails.yearsInBusiness || ''} onKeyDown={(e) => preventInvalidNumberKey(e)} onChange={(e) => updateDetails('yearsInBusiness', sanitizeNumberInput(e.target.value, { maxLength: 3 }))} className={inputClass} required min="0" max="100" placeholder="5" />
             </div>
           </div>
         );

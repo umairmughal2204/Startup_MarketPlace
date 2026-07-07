@@ -3,6 +3,7 @@ import { GraduationCap, Star, Clock, Search, MessageSquare, CheckCircle, Plus, X
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { mentorshipApi } from '../../api/featuresApi';
+import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
 
 interface Mentor {
   _id: string;
@@ -73,6 +74,11 @@ export const MentorshipMarketplace = () => {
 
   const handleBecomeMentor = async (e: React.FormEvent) => {
     e.preventDefault();
+    const rate = parseValidatedNumber(mentorForm.hourlyRate, { min: 0, max: 10000, integer: true, label: 'Hourly rate' });
+    if (isBlank(mentorForm.mentorBio) || mentorForm.expertise.length === 0 || rate.error) {
+      alert(rate.error || 'Please complete all mentor fields.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await mentorshipApi.becomeMentor(mentorForm);
@@ -162,9 +168,14 @@ export const MentorshipMarketplace = () => {
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={mentorForm.hourlyRate}
-                    onChange={(e) => setMentorForm({ ...mentorForm, hourlyRate: parseInt(e.target.value) || 0 })}
+                    onKeyDown={(e) => preventInvalidNumberKey(e)}
+                    onChange={(e) => {
+                      const value = sanitizeNumberInput(e.target.value, { maxLength: 5 });
+                      setMentorForm({ ...mentorForm, hourlyRate: value ? Number(value) : 0 });
+                    }}
                     className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm"
                     min="0"
                     required

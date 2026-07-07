@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Play, Clock, Users, Star, Calendar, Search, BookOpen, Plus, X } from 'lucide-react';
 import { webinarApi } from '../../api/featuresApi';
 import { useAuth } from '../../context/AuthContext';
+import { isBlank, parseValidatedNumber } from '../../utils/validation';
 
 interface Webinar {
   _id: string;
@@ -93,11 +94,38 @@ export const WebinarsTraining = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const participants = parseValidatedNumber(form.maxParticipants, {
+      min: 1,
+      max: 10000,
+      integer: true,
+      label: 'Maximum participants',
+    });
+    if (
+      isBlank(form.title) ||
+      isBlank(form.instructor) ||
+      isBlank(form.description) ||
+      isBlank(form.category) ||
+      isBlank(form.level) ||
+      isBlank(form.duration) ||
+      isBlank(form.date) ||
+      participants.error
+    ) {
+      alert(participants.error || 'Please complete all required webinar fields.');
+      return;
+    }
+    if (new Date(form.date) <= new Date()) {
+      alert('Webinar date must be in the future.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await webinarApi.createWebinar({
         ...form,
-        tags: form.tags.split(',').map((t) => t.trim()),
+        title: form.title.trim(),
+        instructor: form.instructor.trim(),
+        description: form.description.trim(),
+        duration: form.duration.trim(),
+        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
       });
       setShowCreate(false);
       fetchWebinars();

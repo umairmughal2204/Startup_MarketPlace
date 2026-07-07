@@ -4,6 +4,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { useAuth } from '../../context/AuthContext';
+import { parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
 
 interface Product {
   id: string;
@@ -61,6 +62,12 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   };
 
   const handlePlaceOrder = async () => {
+    const quantityCheck = parseValidatedNumber(quantity, { min: 1, max: 999, integer: true, label: 'Quantity' });
+    if (quantityCheck.error) {
+      alert(quantityCheck.error);
+      return;
+    }
+
     const confirmOrder = window.confirm('Place this order?');
     if (!confirmOrder) return;
 
@@ -68,7 +75,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
       await entrepreneurApi.createOrder({
         productName: productData.name,
         supplier: productData.supplier,
-        quantity,
+        quantity: quantityCheck.value || 1,
         price: productData.price,
         entrepreneurName: user?.name || 'Entrepreneur',
         entrepreneurEmail: user?.email || '',
@@ -266,10 +273,15 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Quantity:</span>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     min={1}
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value) || 1)}
+                    onKeyDown={(e) => preventInvalidNumberKey(e)}
+                    onChange={(e) => {
+                      const value = sanitizeNumberInput(e.target.value, { maxLength: 3 });
+                      setQuantity(value ? Number(value) : 1);
+                    }}
                     className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-right"
                   />
                 </div>

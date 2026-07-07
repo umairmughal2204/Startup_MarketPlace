@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, DollarSign, Edit, Save, X, XCircle } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
+import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
 
 interface Product {
   id: string;
@@ -115,13 +116,18 @@ export const ReviewProducts = () => {
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
+    const price = parseValidatedNumber(editForm.price, { min: 0.01, label: 'Price' });
+    if (isBlank(editForm.name) || isBlank(editForm.description) || isBlank(editForm.category) || price.error) {
+      alert(price.error || 'Please complete all product fields.');
+      return;
+    }
     const confirmUpdate = window.confirm('Update this product?');
     if (!confirmUpdate) return;
     setIsSaving(true);
     try {
       const updated = await supplierApi.updateProduct(editingProduct.id, {
-        name: editForm.name,
-        description: editForm.description,
+        name: editForm.name.trim(),
+        description: editForm.description.trim(),
         price: editForm.price,
         category: editForm.category,
         image: editingProduct.image || editingProduct.imageUrl || '',
@@ -368,9 +374,14 @@ export const ReviewProducts = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Price</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={editForm.price}
-                  onChange={(event) => setEditForm({ ...editForm, price: Number(event.target.value) })}
+                  onKeyDown={(event) => preventInvalidNumberKey(event, { allowDecimal: true })}
+                  onChange={(event) => {
+                    const value = sanitizeNumberInput(event.target.value, { allowDecimal: true, maxLength: 10 });
+                    setEditForm({ ...editForm, price: value ? Number(value) : 0 });
+                  }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
                 />
               </div>

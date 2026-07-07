@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, Edit, Save, X, XCircle, Target, User, Calendar } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { isBlank } from '../../utils/validation';
 
 interface Idea {
   id: string;
@@ -110,14 +111,18 @@ export const ReviewIdeas = () => {
 
   const handleSaveEdit = async () => {
     if (!editingIdea) return;
+    if (isBlank(editForm.title) || isBlank(editForm.category) || isBlank(editForm.description)) {
+      alert('Please complete all idea fields.');
+      return;
+    }
     const confirmUpdate = window.confirm('Update this idea?');
     if (!confirmUpdate) return;
     setIsSaving(true);
     try {
       const updated = await entrepreneurApi.updateIdea(editingIdea.id, {
-        title: editForm.title,
+        title: editForm.title.trim(),
         category: editForm.category,
-        description: editForm.description,
+        description: editForm.description.trim(),
         status: editForm.status,
       });
       setIdeas((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target, X } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 
 interface IdeaSubmission {
   title: string;
@@ -62,14 +63,23 @@ export const SubmitIdea = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBlank(formData.title) || isBlank(formData.category) || isBlank(formData.description)) {
+      alert('Please complete all required idea fields.');
+      return;
+    }
+    const descriptionError = validateMeaningfulDescription(formData.description);
+    if (descriptionError) {
+      alert(descriptionError);
+      return;
+    }
     const confirmCreate = window.confirm('Submit this idea?');
     if (!confirmCreate) return;
     setIsSubmitting(true);
     try {
       await entrepreneurApi.createIdea({
-        title: formData.title,
+        title: formData.title.trim(),
         category: formData.category,
-        description: formData.description,
+        description: formData.description.trim(),
         file: formData.file,
       });
 
@@ -78,9 +88,9 @@ export const SubmitIdea = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: formData.title,
+          title: formData.title.trim(),
           category: formData.category,
-          description: formData.description,
+          description: formData.description.trim(),
         }),
       });
       const aiData = aiRes.ok ? await aiRes.json() : null;
@@ -162,6 +172,7 @@ export const SubmitIdea = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Description *
               </label>
+              <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp, X, Target, CheckCircle, AlertCircle, FileText, Edit3, Trash2, Save } from 'lucide-react';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 
 interface IdeaItem {
@@ -148,6 +149,17 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
 
   const handleUpdate = async () => {
     if (!selectedIdea) return;
+
+    if (isBlank(editForm.title)) {
+      alert('Title is required.');
+      return;
+    }
+    const descriptionError = validateMeaningfulDescription(editForm.description);
+    if (descriptionError) {
+      alert(descriptionError);
+      return;
+    }
+
     const confirmUpdate = window.confirm("Update this idea with the new changes?");
     if (!confirmUpdate) return;
     setIsSaving(true);
@@ -501,6 +513,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                      <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                       <textarea
                         value={editForm.description}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}

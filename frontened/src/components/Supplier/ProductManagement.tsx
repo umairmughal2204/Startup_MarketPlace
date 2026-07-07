@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, X } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
 import { useAuth } from '../../context/AuthContext';
+import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput, validateMeaningfulDescription } from '../../utils/validation';
 
 interface Product {
   id: string;
@@ -66,9 +67,27 @@ export const ProductManagement = () => {
     };
   }, []);
 
+  const validateProductForm = () => {
+    if (isBlank(newProduct.name)) return 'Product name is required.';
+    if (isBlank(newProduct.description)) return 'Description is required.';
+    const descriptionError = validateMeaningfulDescription(newProduct.description);
+    if (descriptionError) return descriptionError;
+    if (isBlank(newProduct.category)) return 'Category is required.';
+    const price = parseValidatedNumber(newProduct.price, { min: 0.01, label: 'Price' });
+    return price.error;
+  };
+
+  const validateImageFile = (file: File | null) => {
+    if (!file) return null;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) return 'Only PNG, JPG, and WEBP images are allowed.';
+    if (file.size > 5 * 1024 * 1024) return 'Image size must be less than 5MB.';
+    return null;
+  };
+
   const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.category) {
-      alert('Please fill in all required fields');
+    const validationError = validateProductForm() || validateImageFile(imageFile);
+    if (validationError) {
+      alert(validationError);
       return;
     }
 
@@ -146,6 +165,12 @@ export const ProductManagement = () => {
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
+    const validationError = validateProductForm() || validateImageFile(imageFile);
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
+
     const confirmUpdate = window.confirm('Update this product?');
     if (!confirmUpdate) return;
 
@@ -288,6 +313,7 @@ export const ProductManagement = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Description *
                 </label>
+                <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
@@ -303,9 +329,14 @@ export const ProductManagement = () => {
                     Price ($) *
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={newProduct.price || ''}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
+                    onKeyDown={(e) => preventInvalidNumberKey(e, { allowDecimal: true })}
+                    onChange={(e) => {
+                      const value = sanitizeNumberInput(e.target.value, { allowDecimal: true, maxLength: 10 });
+                      setNewProduct({ ...newProduct, price: value ? Number(value) : 0 });
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                     placeholder="299"
                   />
@@ -355,7 +386,16 @@ export const ProductManagement = () => {
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      const validationError = validateImageFile(file);
+                      if (validationError) {
+                        alert(validationError);
+                        e.target.value = '';
+                        return;
+                      }
+                      setImageFile(file);
+                    }}
                     className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-teal-600 hover:file:bg-cyan-100"
                   />
                 </div>
@@ -428,6 +468,7 @@ export const ProductManagement = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Description *
                 </label>
+                <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                 <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
@@ -443,9 +484,14 @@ export const ProductManagement = () => {
                     Price ($) *
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     value={newProduct.price || ''}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) })}
+                    onKeyDown={(e) => preventInvalidNumberKey(e, { allowDecimal: true })}
+                    onChange={(e) => {
+                      const value = sanitizeNumberInput(e.target.value, { allowDecimal: true, maxLength: 10 });
+                      setNewProduct({ ...newProduct, price: value ? Number(value) : 0 });
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
                     placeholder="299"
                   />
@@ -500,7 +546,16 @@ export const ProductManagement = () => {
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      const validationError = validateImageFile(file);
+                      if (validationError) {
+                        alert(validationError);
+                        e.target.value = '';
+                        return;
+                      }
+                      setImageFile(file);
+                    }}
                     className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-50 file:text-teal-600 hover:file:bg-cyan-100"
                   />
                 </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Users, Search, MessageSquare, Star, Plus, X } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { cofounderApi } from '../../api/featuresApi';
+import { isBlank } from '../../utils/validation';
 
 interface CoFounder {
   _id: string;
@@ -78,6 +79,10 @@ export const CoFounderFinder = () => {
 
   const handleBecomeCoFounder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBlank(form.coFounderBio) || form.coFounderSkills.length === 0 || isBlank(form.equityExpectation) || isBlank(form.coFounderCommitment)) {
+      alert('Please complete all co-founder profile fields.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await cofounderApi.becomeCoFounder(form);
