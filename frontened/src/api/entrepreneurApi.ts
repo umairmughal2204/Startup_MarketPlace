@@ -62,6 +62,13 @@ export const entrepreneurApi = {
     if (!res.ok) throw new Error("Failed to fetch orders");
     return res.json();
   },
+  async getFeedback() {
+    const res = await fetch(`${API_BASE}/api/entrepreneur/feedback`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch feedback");
+    return res.json();
+  },
   async createOrder(payload: {
     productName: string;
     supplier: string;

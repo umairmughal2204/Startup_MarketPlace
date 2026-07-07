@@ -3,6 +3,7 @@ const path = require("path");
 const multer = require("multer");
 const Idea = require("../models/Idea");
 const Order = require("../models/Order");
+const Feedback = require("../models/Feedback");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -45,12 +46,32 @@ const toOrderResponse = (doc) => {
   return { id: _id.toString(), ...rest };
 };
 
+const toFeedbackResponse = (doc) => {
+  const data = doc.toObject ? doc.toObject() : doc;
+  const { _id, __v, ideaId, ...rest } = data;
+  const ideaDoc = ideaId && ideaId.title ? ideaId : null;
+  return {
+    id: _id.toString(),
+    ideaId: ideaDoc ? ideaDoc._id.toString() : ideaId?.toString?.() || ideaId,
+    ideaTitle: ideaDoc ? ideaDoc.title : undefined,
+    category: ideaDoc ? ideaDoc.category : undefined,
+    ...rest,
+  };
+};
+
 const isOwnerOrAdmin = (user, ownerId) => user && (user.role === "Admin" || String(user._id) === String(ownerId));
 
 // Ideas CRUD
 router.get("/ideas", async (req, res) => {
   try {
-    const query = req.user.role === "Admin" ? {} : { ownerId: req.user._id };
+    let query = {};
+    if (req.user.role === "Admin") {
+      query = {};
+    } else if (req.user.role === "Investor") {
+      query = { status: "Approved" };
+    } else {
+      query = { ownerId: req.user._id };
+    }
     const ideas = await Idea.find(query).sort({ createdAt: -1 });
     res.json(ideas.map(toIdeaResponse));
   } catch (error) {
@@ -236,6 +257,29 @@ router.post("/orders", async (req, res) => {
     res.status(201).json(toOrderResponse(newOrder));
   } catch (error) {
     res.status(500).json({ message: "Failed to create order" });
+  }
+});
+
+router.get("/feedback", async (req, res) => {
+  try {
+    let query = {};
+
+    if (req.user.role !== "Admin") {
+      const ownedIdeas = await Idea.find({ ownerId: req.user._id }).select("_id");
+      const ideaIds = ownedIdeas.map((idea) => idea._id);
+      if (ideaIds.length === 0) {
+        return res.json([]);
+      }
+      query = { ideaId: { $in: ideaIds } };
+    }
+
+    const feedback = await Feedback.find(query)
+      .populate("ideaId", "title category")
+      .sort({ createdAt: -1 });
+
+    res.json(feedback.map(toFeedbackResponse));
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch feedback" });
   }
 });
 

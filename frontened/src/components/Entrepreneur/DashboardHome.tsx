@@ -14,15 +14,28 @@ interface IdeaItem {
   feedbackCount: number;
 }
 
+interface FeedbackItem {
+  id: string;
+  ideaId: string;
+  ideaTitle?: string;
+  category?: string;
+  rating: number;
+  comment: string;
+  investorName?: string;
+  createdAt?: string;
+}
+
 interface DashboardHomeProps {
   onNavigate?: (pageId: string) => void;
 }
 
 export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIdea, setSelectedIdea] = useState<IdeaItem | null>(null);
+  const [showIdeaFeedback, setShowIdeaFeedback] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,13 +63,13 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
   const loadIdeas = (selectedId?: string | null) => {
     let isMounted = true;
     setIsLoading(true);
-    entrepreneurApi
-      .getIdeas()
-      .then((data) => {
+    Promise.all([entrepreneurApi.getIdeas(), entrepreneurApi.getFeedback()])
+      .then(([ideasData, feedbackData]) => {
         if (isMounted) {
-          setIdeas(data);
+          setIdeas(ideasData);
+          setFeedback(feedbackData);
           if (selectedId) {
-            setSelectedIdea(data.find((idea: IdeaItem) => idea.id === selectedId) || null);
+            setSelectedIdea(ideasData.find((idea: IdeaItem) => idea.id === selectedId) || null);
           }
           setError(null);
         }
@@ -112,9 +125,12 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
     feedback: idea.feedbackCount || 0,
   }));
 
+  const recentFeedback = feedback.slice(0, 5);
+
   const openIdea = (ideaId: string) => {
     const idea = ideas.find((i) => i.id === ideaId) || null;
     setSelectedIdea(idea);
+    setShowIdeaFeedback(false);
     setIsEditing(false);
   };
 
@@ -170,6 +186,11 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       setIsDeleting(false);
     }
   };
+
+  const selectedIdeaFeedback = useMemo(() => {
+    if (!selectedIdea) return [] as FeedbackItem[];
+    return feedback.filter((item) => item.ideaId === selectedIdea.id);
+  }, [feedback, selectedIdea]);
 
   return (
     <div className="space-y-8">
@@ -292,6 +313,48 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
           >
             Explore Products
           </button>
+        </div>
+      </div>
+
+      {/* Recent Investor Feedback */}
+      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-pink-100 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">Recent Investor Feedback</h2>
+            <p className="text-sm text-slate-500">Comments on your ideas from approved investor reviews.</p>
+          </div>
+          <div className="text-sm font-semibold text-pink-600">
+            {feedback.length} total
+          </div>
+        </div>
+        <div className="p-6">
+          {recentFeedback.length === 0 ? (
+            <div className="text-sm text-gray-500">No feedback yet. Once investors review your approved ideas, it will appear here.</div>
+          ) : (
+            <div className="space-y-4">
+              {recentFeedback.map((item) => (
+                <div key={item.id} className="rounded-2xl border border-pink-100 bg-pink-50/50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                    <div>
+                      <div className="font-semibold text-slate-950">{item.ideaTitle || 'Idea Feedback'}</div>
+                      <div className="text-xs text-slate-500">
+                        {item.category || 'General'} · {item.investorName || 'Investor'}
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-pink-600">
+                      {item.rating}/5
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-700 leading-relaxed">
+                    {item.comment || 'No comment provided.'}
+                  </p>
+                  <div className="mt-2 text-xs text-slate-500">
+                    {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -483,13 +546,47 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
               </div>
 
               {/* Feedback Count */}
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setShowIdeaFeedback((prev) => !prev)}
+                className="w-full flex items-center gap-4 p-4 bg-gray-50 rounded-lg text-left hover:bg-pink-50 transition"
+              >
                 <MessageSquare className="w-6 h-6 text-pink-600" />
                 <div>
                   <span className="text-2xl font-bold text-gray-900">{selectedIdea.feedbackCount || 0}</span>
-                  <span className="text-gray-600 ml-2">Investor Feedback{selectedIdea.feedbackCount !== 1 ? 's' : ''}</span>
+                  <span className="text-gray-600 ml-2">
+                    Investor Feedback{selectedIdea.feedbackCount !== 1 ? 's' : ''}
+                  </span>
+                  <div className="text-xs text-pink-600 mt-1">
+                    {showIdeaFeedback ? 'Hide feedback details' : 'Click to view feedback details'}
+                  </div>
                 </div>
-              </div>
+              </button>
+
+              {showIdeaFeedback && (
+                <div className="space-y-3 rounded-2xl border border-pink-100 bg-pink-50/60 p-4">
+                  {selectedIdeaFeedback.length === 0 ? (
+                    <div className="text-sm text-gray-500">No feedback comments yet for this idea.</div>
+                  ) : (
+                    selectedIdeaFeedback.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-pink-100 bg-white p-4 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+                          <div>
+                            <div className="font-semibold text-slate-950">{item.investorName || 'Investor'}</div>
+                            <div className="text-xs text-slate-500">
+                              {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A'}
+                            </div>
+                          </div>
+                          <div className="text-sm font-bold text-pink-600">{item.rating}/5</div>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {item.comment || 'No comment provided.'}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Modal Footer */}
