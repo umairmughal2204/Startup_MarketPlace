@@ -20,6 +20,8 @@ const toFeedbackResponse = (doc) => {
   };
 };
 
+const isOwnerOrAdmin = (user, ownerId) => user && (user.role === "Admin" || String(user._id) === String(ownerId));
+
 // Feedback CRUD
 router.get("/feedback", async (req, res) => {
   try {
@@ -47,8 +49,9 @@ router.post("/feedback", async (req, res) => {
     }
 
     const feedback = await Feedback.create({
+      investorId: req.user._id,
       ideaId,
-      investorName: investorName || "",
+      investorName: investorName || req.user.name,
       rating,
       comment: comment || "",
     });
@@ -64,6 +67,14 @@ router.post("/feedback", async (req, res) => {
 
 router.put("/feedback/:id", async (req, res) => {
   try {
+    const existing = await Feedback.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Feedback not found" });
+    }
+    if (!isOwnerOrAdmin(req.user, existing.investorId)) {
+      return res.status(403).json({ message: "You can only edit your own feedback" });
+    }
+
     const updates = {};
     const { rating, comment } = req.body || {};
     if (rating !== undefined) updates.rating = rating;
@@ -74,10 +85,6 @@ router.put("/feedback/:id", async (req, res) => {
       runValidators: true,
     }).populate("ideaId", "title category");
 
-    if (!feedback) {
-      return res.status(404).json({ message: "Feedback not found" });
-    }
-
     res.json(toFeedbackResponse(feedback));
   } catch (error) {
     res.status(400).json({ message: "Failed to update feedback" });
@@ -86,9 +93,12 @@ router.put("/feedback/:id", async (req, res) => {
 
 router.delete("/feedback/:id", async (req, res) => {
   try {
-    const feedback = await Feedback.findByIdAndDelete(req.params.id);
+    const feedback = await Feedback.findById(req.params.id);
     if (!feedback) {
       return res.status(404).json({ message: "Feedback not found" });
+    }
+    if (!isOwnerOrAdmin(req.user, feedback.investorId)) {
+      return res.status(403).json({ message: "You can only delete your own feedback" });
     }
 
     const updatedIdea = await Idea.findByIdAndUpdate(
@@ -99,6 +109,8 @@ router.delete("/feedback/:id", async (req, res) => {
     if (updatedIdea && updatedIdea.feedbackCount < 0) {
       await Idea.findByIdAndUpdate(updatedIdea._id, { feedbackCount: 0 });
     }
+
+    await Feedback.findByIdAndDelete(req.params.id);
 
     res.json(toFeedbackResponse(feedback));
   } catch (error) {

@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
-require("dotenv").config();
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const entrepreneurRoutes = require("./routes/entrepreneur");
 const supplierRoutes = require("./routes/supplier");
 const investorRoutes = require("./routes/investor");
@@ -19,6 +19,9 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 4000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_NAME = process.env.ADMIN_NAME || "Admin";
 
 app.use(cors());
 app.use(express.json());
@@ -48,18 +51,29 @@ const startServer = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log("MongoDB connected");
 
-    const adminEmail = "admin@gmail.com";
-    const existingAdmin = await User.findOne({ email: adminEmail });
-    if (!existingAdmin) {
-      await User.create({
-        name: "Admin",
-        email: adminEmail,
-        password: "admin123",
-        role: "Admin",
-        isVerified: true,
-        status: "Active",
-      });
-      console.log("Default admin account created");
+    if (ADMIN_EMAIL && ADMIN_PASSWORD) {
+      const normalizedEmail = String(ADMIN_EMAIL).toLowerCase();
+      const existingAdmin = await User.findOne({ role: "Admin" });
+
+      if (existingAdmin) {
+        existingAdmin.name = ADMIN_NAME;
+        existingAdmin.email = normalizedEmail;
+        existingAdmin.password = ADMIN_PASSWORD;
+        existingAdmin.isVerified = true;
+        existingAdmin.status = "Active";
+        await existingAdmin.save();
+        console.log(`Admin account refreshed from env for ${normalizedEmail}`);
+      } else {
+        await User.create({
+          name: ADMIN_NAME,
+          email: normalizedEmail,
+          password: ADMIN_PASSWORD,
+          role: "Admin",
+          isVerified: true,
+          status: "Active",
+        });
+        console.log(`Admin account created from env for ${normalizedEmail}`);
+      }
     }
 
     const io = new Server(server, {

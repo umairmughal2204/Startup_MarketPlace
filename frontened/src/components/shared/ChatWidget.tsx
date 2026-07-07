@@ -180,7 +180,6 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
     try {
       await chatApi.sendMessage({
         threadId: selectedThread.id,
-        sender: currentUser,
         content,
       });
     } catch (err) {

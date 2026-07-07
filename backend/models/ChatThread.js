@@ -27,6 +27,7 @@ const chatThreadSchema = new mongoose.Schema(
       enum: ["role", "direct", "idea"],
       required: true,
     },
+    createdBy: { type: String, default: "", index: true },
     title: { type: String, default: "" },
     role: { type: String, default: "" },
     ideaId: { type: String, default: "" },
@@ -37,5 +38,7 @@ const chatThreadSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+chatThreadSchema.index({ participantIds: 1, updatedAt: -1 });
 
 module.exports = mongoose.model("ChatThread", chatThreadSchema);

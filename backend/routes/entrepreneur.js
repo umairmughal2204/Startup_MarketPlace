@@ -45,10 +45,13 @@ const toOrderResponse = (doc) => {
   return { id: _id.toString(), ...rest };
 };
 
+const isOwnerOrAdmin = (user, ownerId) => user && (user.role === "Admin" || String(user._id) === String(ownerId));
+
 // Ideas CRUD
 router.get("/ideas", async (req, res) => {
   try {
-    const ideas = await Idea.find().sort({ createdAt: -1 });
+    const query = req.user.role === "Admin" ? {} : { ownerId: req.user._id };
+    const ideas = await Idea.find(query).sort({ createdAt: -1 });
     res.json(ideas.map(toIdeaResponse));
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch ideas" });
@@ -112,6 +115,7 @@ router.post("/ideas", upload.single("document"), async (req, res) => {
     const documentUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     const newIdea = await Idea.create({
+      ownerId: req.user._id,
       title,
       category,
       description,
@@ -130,6 +134,14 @@ router.post("/ideas", upload.single("document"), async (req, res) => {
 
 router.put("/ideas/:id", upload.single("document"), async (req, res) => {
   try {
+    const existing = await Idea.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "Idea not found" });
+    }
+    if (!isOwnerOrAdmin(req.user, existing.ownerId)) {
+      return res.status(403).json({ message: "You can only edit your own ideas" });
+    }
+
     const updates = {};
     const { title, category, description, status, aiScore, feedbackCount } = req.body || {};
 
@@ -149,10 +161,6 @@ router.put("/ideas/:id", upload.single("document"), async (req, res) => {
       runValidators: true,
     });
 
-    if (!idea) {
-      return res.status(404).json({ message: "Idea not found" });
-    }
-
     res.json(toIdeaResponse(idea));
   } catch (error) {
     res.status(400).json({ message: "Failed to update idea" });
@@ -161,10 +169,14 @@ router.put("/ideas/:id", upload.single("document"), async (req, res) => {
 
 router.delete("/ideas/:id", async (req, res) => {
   try {
-    const idea = await Idea.findByIdAndDelete(req.params.id);
+    const idea = await Idea.findById(req.params.id);
     if (!idea) {
       return res.status(404).json({ message: "Idea not found" });
     }
+    if (!isOwnerOrAdmin(req.user, idea.ownerId)) {
+      return res.status(403).json({ message: "You can only delete your own ideas" });
+    }
+    await Idea.findByIdAndDelete(req.params.id);
     res.json(toIdeaResponse(idea));
   } catch (error) {
     res.status(400).json({ message: "Invalid idea id" });
@@ -174,7 +186,8 @@ router.delete("/ideas/:id", async (req, res) => {
 // Orders (read/list + create)
 router.get("/orders", async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const query = req.user.role === "Admin" ? {} : { ownerId: req.user._id };
+    const orders = await Order.find(query).sort({ createdAt: -1 });
     res.json(orders.map(toOrderResponse));
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch orders" });
@@ -208,6 +221,7 @@ router.post("/orders", async (req, res) => {
       .slice(0, 10);
 
     const newOrder = await Order.create({
+      ownerId: req.user._id,
       productName,
       supplier,
       entrepreneurName: entrepreneurName || "",

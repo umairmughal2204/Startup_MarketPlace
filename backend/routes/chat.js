@@ -11,20 +11,40 @@ const normalizeParticipants = (participants = []) =>
     .filter((p) => p && p.id && p.name && p.role)
     .map((p) => ({ id: String(p.id), name: String(p.name), role: String(p.role) }));
 
+const normalizeUser = (user) => ({
+  id: String(user._id || user.id),
+  name: String(user.name || ""),
+  role: String(user.role || ""),
+});
+
+const canAccessThread = (thread, user) => {
+  if (!thread || !user) return false;
+  const userId = String(user._id);
+  if (user.role === "Admin") return true;
+  if (thread.type === "direct") {
+    return Array.isArray(thread.participantIds) && thread.participantIds.includes(userId);
+  }
+  if (thread.type === "role") {
+    return thread.role === user.role;
+  }
+  if (thread.type === "idea") {
+    return ["Entrepreneur", "Investor"].includes(user.role) || thread.createdBy === userId;
+  }
+  return false;
+};
+
 router.get("/threads", async (req, res) => {
-  const { userId, role } = req.query;
   try {
-    const conditions = [];
-    if (userId) {
-      conditions.push({ participantIds: String(userId) });
+    const userId = String(req.user._id);
+    const role = String(req.user.role);
+    const conditions = [
+      { participantIds: userId },
+      { type: "role", role },
+    ];
+    if (["Admin", "Investor", "Entrepreneur"].includes(role)) {
+      conditions.push({ type: "idea" });
     }
-    if (role) {
-      conditions.push({ type: "role", role: String(role) });
-      if (["Admin", "Investor", "Entrepreneur"].includes(String(role))) {
-        conditions.push({ type: "idea" });
-      }
-    }
-    const query = conditions.length ? { $or: conditions } : {};
+    const query = { $or: conditions };
     const threads = await ChatThread.find(query).sort({ updatedAt: -1 });
     res.json(threads);
   } catch (error) {
@@ -49,6 +69,9 @@ router.post("/threads", async (req, res) => {
         type: "role",
         role: String(role),
         title: title || `${role} Room`,
+        createdBy: String(req.user._id),
+        participantIds: [String(req.user._id)],
+        participants: [normalizeUser(req.user)],
       });
       return res.json(thread);
     }
@@ -64,16 +87,21 @@ router.post("/threads", async (req, res) => {
         ideaId: String(ideaId),
         ideaTitle: ideaTitle || "Idea Discussion",
         title: title || ideaTitle || "Idea Discussion",
+        createdBy: String(req.user._id),
+        participantIds: [String(req.user._id)],
+        participants: [normalizeUser(req.user)],
       });
       return res.json(thread);
     }
 
     if (type === "direct") {
       const normalized = normalizeParticipants(participants);
-      if (normalized.length < 2) {
+      const currentUser = normalizeUser(req.user);
+      const otherParticipants = normalized.filter((participant) => participant.id !== currentUser.id);
+      if (otherParticipants.length < 1) {
         return res.status(400).json({ message: "Direct threads need two participants" });
       }
-      const ids = normalized.map((p) => p.id).sort();
+      const ids = [currentUser.id, otherParticipants[0].id].sort();
       const existing = await ChatThread.findOne({
         type: "direct",
         participantIds: { $all: ids, $size: ids.length },
@@ -82,8 +110,9 @@ router.post("/threads", async (req, res) => {
       const thread = await ChatThread.create({
         type: "direct",
         participantIds: ids,
-        participants: normalized,
-        title: title || normalized.map((p) => p.name).join(" & "),
+        participants: [currentUser, otherParticipants[0]],
+        createdBy: currentUser.id,
+        title: title || [currentUser.name, otherParticipants[0].name].join(" & "),
       });
       return res.json(thread);
     }
@@ -100,6 +129,13 @@ router.get("/messages", async (req, res) => {
     return res.status(400).json({ message: "threadId is required" });
   }
   try {
+    const thread = await ChatThread.findById(threadId);
+    if (!thread) {
+      return res.status(404).json({ message: "Thread not found" });
+    }
+    if (!canAccessThread(thread, req.user)) {
+      return res.status(403).json({ message: "You do not have access to this thread" });
+    }
     const messages = await ChatMessage.find({ threadId: String(threadId) }).sort({ createdAt: 1 });
     res.json(messages);
   } catch (error) {
@@ -108,12 +144,21 @@ router.get("/messages", async (req, res) => {
 });
 
 router.post("/messages", async (req, res) => {
-  const { threadId, sender, content } = req.body || {};
-  if (!threadId || !sender || !content) {
-    return res.status(400).json({ message: "threadId, sender, and content are required" });
+  const { threadId, content } = req.body || {};
+  if (!threadId || !content) {
+    return res.status(400).json({ message: "threadId and content are required" });
   }
 
   try {
+    const thread = await ChatThread.findById(threadId);
+    if (!thread) {
+      return res.status(404).json({ message: "Thread not found" });
+    }
+    if (!canAccessThread(thread, req.user)) {
+      return res.status(403).json({ message: "You do not have access to this thread" });
+    }
+
+    const sender = normalizeUser(req.user);
     const message = await ChatMessage.create({
       threadId,
       sender,

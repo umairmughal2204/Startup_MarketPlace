@@ -6,6 +6,7 @@ const Resource = require('../models/Resource');
 const { requireAuth } = require('../middleware/auth');
 
 const verifyUser = requireAuth;
+const isAdminOrMentor = (user) => user && (user.role === 'Admin' || user.role === 'Mentor');
 
 // ========== MENTORSHIP ROUTES ==========
 
@@ -163,6 +164,9 @@ router.get('/webinars/:id', async (req, res) => {
 // POST /api/features/webinars - Create webinar (admin/mentor only)
 router.post('/webinars', verifyUser, async (req, res) => {
   try {
+    if (!isAdminOrMentor(req.user)) {
+      return res.status(403).json({ message: 'Only admins or mentors can create webinars' });
+    }
     const webinarData = {
       ...req.body,
       instructorId: req.user._id,
@@ -267,6 +271,9 @@ router.get('/resources/:id', async (req, res) => {
 // POST /api/features/resources - Create resource (admin only)
 router.post('/resources', verifyUser, async (req, res) => {
   try {
+    if (req.user.role !== 'Admin') {
+      return res.status(403).json({ message: 'Only admins can create resources' });
+    }
     const resourceData = {
       ...req.body,
       uploadedBy: req.user._id,
@@ -282,7 +289,7 @@ router.post('/resources', verifyUser, async (req, res) => {
 // POST /api/features/resources/:id/download - Track download
 router.post('/resources/:id/download', verifyUser, async (req, res) => {
   try {
-    const resource = await Webinar.findById(req.params.id);
+    const resource = await Resource.findById(req.params.id);
     if (!resource) {
       return res.status(404).json({ message: 'Resource not found' });
     }

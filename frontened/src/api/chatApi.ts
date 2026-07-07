@@ -93,7 +93,7 @@ export const chatApi = {
     const data = await res.json();
     return (data || []).map(mapMessage) as ChatMessage[];
   },
-  async sendMessage(payload: { threadId: string; sender: ChatParticipant; content: string }) {
+  async sendMessage(payload: { threadId: string; content: string }) {
     const res = await fetch(`${API_BASE}/api/chat/messages`, {
       method: "POST",
       headers: getAuthHeaders("application/json"),
