@@ -93,6 +93,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             setUser(loadedUser);
             saveCurrentUser(loadedUser);
+            if (loadedUser.role === 'Admin') {
+              await fetchUsers();
+            }
             return;
           }
 
@@ -169,6 +172,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       setUser(loggedInUser);
       saveCurrentUser(loggedInUser);
+      if (loggedInUser.role === 'Admin') {
+        await fetchUsers();
+      }
     } finally {
       setLoading(false);
     }
