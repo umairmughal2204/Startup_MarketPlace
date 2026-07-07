@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { AUTH_TOKEN_KEY, getAuthHeaders, setStoredToken } from '../api/authHeaders';
 
 export type UserRole = 'Entrepreneur' | 'Supplier' | 'Investor' | 'Admin';
 
@@ -65,20 +66,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+const CURRENT_USER_KEY = 'slm_current_user';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const ADMIN_EMAIL = 'admin@gmail.com';
-  const ADMIN_PASSWORD = 'admin123';
-  const CURRENT_USER_KEY = 'slm_current_user';
-
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load current user from localStorage on mount
   useEffect(() => {
-    const loadCurrentUser = () => {
+    let isMounted = true;
+
+    const loadCurrentUser = async () => {
       try {
+        const token = window.localStorage?.getItem(AUTH_TOKEN_KEY);
+        if (token) {
+          const response = await fetch(`${API_URL}/auth/me`, {
+            headers: getAuthHeaders(),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const loadedUser = {
+              id: data.user._id,
+              ...data.user,
+            };
+            setUser(loadedUser);
+            saveCurrentUser(loadedUser);
+            return;
+          }
+
+          setStoredToken(null);
+        }
+
         const raw = window.localStorage?.getItem(CURRENT_USER_KEY);
         if (raw) {
           const loadedUser = JSON.parse(raw);
@@ -86,16 +106,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (err) {
         console.error('Failed to load current user:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
+
     loadCurrentUser();
-    setLoading(false);
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fetch all users for admin dashboard
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/users`);
+      const response = await fetch(`${API_URL}/auth/users`, {
+        headers: getAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -132,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const data = await response.json();
+      setStoredToken(data.token || null);
       const loggedInUser: User = {
         id: data.user._id,
         ...data.user,
@@ -179,6 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     saveCurrentUser(null);
+    setStoredToken(null);
   };
 
   const updateProfile = async (payload: {
@@ -193,7 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_URL}/auth/users/${user.id}/profile`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify(payload),
       });
 
@@ -222,7 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_URL}/auth/users/${user.id}/password`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify({
           currentPassword,
           newPassword: nextPassword,
@@ -244,7 +276,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_URL}/auth/users/${user.id}/notifications`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify({ notificationPreferences: preferences }),
       });
 
@@ -268,7 +300,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_URL}/auth/users/${userId}/verify`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
         body: JSON.stringify({ isVerified }),
       });
 
@@ -284,7 +316,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_URL}/auth/users/${userId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders('application/json'),
       });
 
       if (response.ok) {

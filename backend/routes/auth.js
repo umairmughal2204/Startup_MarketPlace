@@ -1,12 +1,8 @@
 const express = require("express");
 const User = require("../models/User");
+const { createToken, normalizeUser, requireAuth, requireRole, requireSelfOrAdmin } = require("../middleware/auth");
 
 const router = express.Router();
-
-const normalizeUser = (user) => {
-	const data = user.toJSON ? user.toJSON() : user;
-	return { ...data, id: data._id?.toString?.() || data.id };
-};
 
 router.post("/register", async (req, res) => {
 	try {
@@ -29,7 +25,8 @@ router.post("/register", async (req, res) => {
 			isVerified: role === "Admin",
 		});
 
-		res.status(201).json({ user: normalizeUser(user) });
+		const token = createToken(user);
+		res.status(201).json({ user: normalizeUser(user), token });
 	} catch (error) {
 		res.status(500).json({ message: "Registration failed" });
 	}
@@ -64,13 +61,23 @@ router.post("/login", async (req, res) => {
 			return res.status(403).json({ message: "Account is pending verification" });
 		}
 
-		res.json({ user: normalizeUser(user) });
+		const token = createToken(user);
+		res.json({ user: normalizeUser(user), token });
 	} catch (error) {
 		res.status(500).json({ message: "Login failed" });
 	}
 });
 
-router.get("/users", async (req, res) => {
+
+router.get("/me", requireAuth, async (req, res) => {
+	try {
+		res.json({ user: normalizeUser(req.user) });
+	} catch (error) {
+		res.status(500).json({ message: "Failed to load current user" });
+	}
+});
+
+router.get("/users", requireRole("Admin"), async (req, res) => {
 	try {
 		const users = await User.find().sort({ createdAt: -1 });
 		res.json(users.map(normalizeUser));
@@ -79,7 +86,7 @@ router.get("/users", async (req, res) => {
 	}
 });
 
-router.put("/users/:id/profile", async (req, res) => {
+router.put("/users/:id/profile", requireSelfOrAdmin, async (req, res) => {
 	try {
 		const { name, email, phone, profileVisibility } = req.body || {};
 		const updates = {};
@@ -103,7 +110,7 @@ router.put("/users/:id/profile", async (req, res) => {
 	}
 });
 
-router.put("/users/:id/password", async (req, res) => {
+router.put("/users/:id/password", requireSelfOrAdmin, async (req, res) => {
 	try {
 		const { currentPassword, newPassword } = req.body || {};
 		if (!currentPassword || !newPassword) {
@@ -129,7 +136,7 @@ router.put("/users/:id/password", async (req, res) => {
 	}
 });
 
-router.put("/users/:id/notifications", async (req, res) => {
+router.put("/users/:id/notifications", requireSelfOrAdmin, async (req, res) => {
 	try {
 		const { notificationPreferences } = req.body || {};
 		const user = await User.findByIdAndUpdate(
@@ -148,7 +155,7 @@ router.put("/users/:id/notifications", async (req, res) => {
 	}
 });
 
-router.put("/users/:id/verify", async (req, res) => {
+router.put("/users/:id/verify", requireRole("Admin"), async (req, res) => {
 	try {
 		const { isVerified } = req.body || {};
 		const user = await User.findByIdAndUpdate(
@@ -167,7 +174,7 @@ router.put("/users/:id/verify", async (req, res) => {
 	}
 });
 
-router.put("/users/:id/status", async (req, res) => {
+router.put("/users/:id/status", requireRole("Admin"), async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id);
 		if (!user) {

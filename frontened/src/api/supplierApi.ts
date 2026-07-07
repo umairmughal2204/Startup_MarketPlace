@@ -1,8 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
+import { getAuthHeaders } from './authHeaders';
 
 export const supplierApi = {
   async getProducts() {
-    const res = await fetch(`${API_BASE}/api/supplier/products`);
+    const res = await fetch(`${API_BASE}/api/supplier/products`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch products");
     return res.json();
   },
@@ -30,6 +33,7 @@ export const supplierApi = {
 
     const res = await fetch(`${API_BASE}/api/supplier/products`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error("Failed to create product");
@@ -62,6 +66,7 @@ export const supplierApi = {
 
     const res = await fetch(`${API_BASE}/api/supplier/products/${id}`, {
       method: "PUT",
+      headers: getAuthHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error("Failed to update product");
@@ -70,19 +75,22 @@ export const supplierApi = {
   async deleteProduct(id: string) {
     const res = await fetch(`${API_BASE}/api/supplier/products/${id}`, {
       method: "DELETE",
+      headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error("Failed to delete product");
     return res.json();
   },
   async getOrders() {
-    const res = await fetch(`${API_BASE}/api/supplier/orders`);
+    const res = await fetch(`${API_BASE}/api/supplier/orders`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch orders");
     return res.json();
   },
   async updateOrderStatus(id: string, status: string) {
     const res = await fetch(`${API_BASE}/api/supplier/orders/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders("application/json"),
       body: JSON.stringify({ status }),
     });
     if (!res.ok) throw new Error("Failed to update order status");

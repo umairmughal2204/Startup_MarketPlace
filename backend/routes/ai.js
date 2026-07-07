@@ -158,52 +158,107 @@ router.post("/estimate-cost", async (req, res) => {
     return res.status(400).json({ message: "businessType and stage are required" });
   }
 
-  // Smart cost estimation based on business type and stage (no API needed)
-  // Realistic startup costs (lowered for MVP/early stage focus)
-  const baseCosts = {
-    'SaaS / Software': { tech: [5000, 20000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
-    'E-commerce / Retail': { tech: [3000, 10000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000], inventory: [5000, 30000] },
-    'Marketplace': { tech: [8000, 30000], marketing: [5000, 15000], legal: [2000, 5000], ops: [8000, 25000] },
-    'Mobile App': { tech: [8000, 30000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000] },
-    'Healthcare': { tech: [10000, 40000], marketing: [5000, 15000], legal: [3000, 8000], ops: [8000, 25000], compliance: [5000, 15000] },
-    'Education / EdTech': { tech: [5000, 20000], marketing: [3000, 8000], legal: [1000, 3000], ops: [3000, 12000], content: [3000, 15000] },
-    'Food & Beverage': { tech: [2000, 8000], marketing: [3000, 10000], legal: [2000, 5000], ops: [5000, 20000], equipment: [5000, 25000] },
-    'Consulting / Services': { tech: [500, 2000], marketing: [2000, 8000], legal: [500, 2000], ops: [2000, 8000] },
-    'Manufacturing': { tech: [3000, 12000], marketing: [3000, 10000], legal: [2000, 5000], ops: [10000, 40000], equipment: [10000, 50000] },
-    'Other': { tech: [3000, 12000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
-  };
+  try {
+    if (aiModelsLoaded) {
+      const aiResult = await aiService.estimateCostWithAI(businessType, stage, teamSize, description);
+      return res.json({
+        ...aiResult,
+        model: 'transformer-ai'
+      });
+    }
 
-  const stageMultipliers = {
-    'Idea / Pre-MVP': 0.5,
-    'MVP / Prototype': 0.8,
-    'Early Traction': 1.0,
-    'Growth Stage': 1.5,
-  };
+    // Fallback: deterministic cost estimation if the AI models are unavailable.
+    const baseCosts = {
+      'SaaS / Software': { tech: [5000, 20000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
+      'E-commerce / Retail': { tech: [3000, 10000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000], inventory: [5000, 30000] },
+      'Marketplace': { tech: [8000, 30000], marketing: [5000, 15000], legal: [2000, 5000], ops: [8000, 25000] },
+      'Mobile App': { tech: [8000, 30000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000] },
+      'Healthcare': { tech: [10000, 40000], marketing: [5000, 15000], legal: [3000, 8000], ops: [8000, 25000], compliance: [5000, 15000] },
+      'Education / EdTech': { tech: [5000, 20000], marketing: [3000, 8000], legal: [1000, 3000], ops: [3000, 12000], content: [3000, 15000] },
+      'Food & Beverage': { tech: [2000, 8000], marketing: [3000, 10000], legal: [2000, 5000], ops: [5000, 20000], equipment: [5000, 25000] },
+      'Consulting / Services': { tech: [500, 2000], marketing: [2000, 8000], legal: [500, 2000], ops: [2000, 8000] },
+      'Manufacturing': { tech: [3000, 12000], marketing: [3000, 10000], legal: [2000, 5000], ops: [10000, 40000], equipment: [10000, 50000] },
+      'Other': { tech: [3000, 12000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
+    };
 
-  const teamMultipliers = {
-    'Solo founder': 0.6,
-    '1-3': 1.0,
-    '4-10': 1.5,
-    '10+': 2.0,
-  };
+    const stageMultipliers = {
+      'Idea / Pre-MVP': 0.5,
+      'MVP / Prototype': 0.8,
+      'Early Traction': 1.0,
+      'Growth Stage': 1.5,
+    };
 
-  const costs = baseCosts[businessType] || baseCosts['Other'];
-  const stageMult = stageMultipliers[stage] || 1.0;
-  const teamMult = teamMultipliers[teamSize] || 1.0;
+    const teamMultipliers = {
+      'Solo founder': 0.6,
+      '1-3': 1.0,
+      '4-10': 1.5,
+      '10+': 2.0,
+    };
 
-  const categories = Object.entries(costs).map(([name, [min, max]]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    min: Math.round(min * stageMult * teamMult),
-    max: Math.round(max * stageMult * teamMult),
-    note: getCostNote(name),
-  }));
+    const costs = baseCosts[businessType] || baseCosts['Other'];
+    const stageMult = stageMultipliers[stage] || 1.0;
+    const teamMult = teamMultipliers[teamSize] || 1.0;
 
-  const totalMin = categories.reduce((sum, c) => sum + c.min, 0);
-  const totalMax = categories.reduce((sum, c) => sum + c.max, 0);
+    const categories = Object.entries(costs).map(([name, [min, max]]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      min: Math.round(min * stageMult * teamMult),
+      max: Math.round(max * stageMult * teamMult),
+      note: getCostNote(name),
+    }));
 
-  const tips = getCostTips(businessType, stage);
+    const totalMin = categories.reduce((sum, c) => sum + c.min, 0);
+    const totalMax = categories.reduce((sum, c) => sum + c.max, 0);
 
-  res.json({ totalMin, totalMax, categories, tips });
+    const tips = getCostTips(businessType, stage);
+
+    res.json({ totalMin, totalMax, categories, tips, model: 'rule-based' });
+  } catch (error) {
+    console.error('AI cost estimation error:', error.message);
+    const baseCosts = {
+      'SaaS / Software': { tech: [5000, 20000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
+      'E-commerce / Retail': { tech: [3000, 10000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000], inventory: [5000, 30000] },
+      'Marketplace': { tech: [8000, 30000], marketing: [5000, 15000], legal: [2000, 5000], ops: [8000, 25000] },
+      'Mobile App': { tech: [8000, 30000], marketing: [3000, 10000], legal: [1000, 3000], ops: [5000, 20000] },
+      'Healthcare': { tech: [10000, 40000], marketing: [5000, 15000], legal: [3000, 8000], ops: [8000, 25000], compliance: [5000, 15000] },
+      'Education / EdTech': { tech: [5000, 20000], marketing: [3000, 8000], legal: [1000, 3000], ops: [3000, 12000], content: [3000, 15000] },
+      'Food & Beverage': { tech: [2000, 8000], marketing: [3000, 10000], legal: [2000, 5000], ops: [5000, 20000], equipment: [5000, 25000] },
+      'Consulting / Services': { tech: [500, 2000], marketing: [2000, 8000], legal: [500, 2000], ops: [2000, 8000] },
+      'Manufacturing': { tech: [3000, 12000], marketing: [3000, 10000], legal: [2000, 5000], ops: [10000, 40000], equipment: [10000, 50000] },
+      'Other': { tech: [3000, 12000], marketing: [2000, 8000], legal: [1000, 3000], ops: [3000, 15000] },
+    };
+
+    const stageMultipliers = {
+      'Idea / Pre-MVP': 0.5,
+      'MVP / Prototype': 0.8,
+      'Early Traction': 1.0,
+      'Growth Stage': 1.5,
+    };
+
+    const teamMultipliers = {
+      'Solo founder': 0.6,
+      '1-3': 1.0,
+      '4-10': 1.5,
+      '10+': 2.0,
+    };
+
+    const costs = baseCosts[businessType] || baseCosts['Other'];
+    const stageMult = stageMultipliers[stage] || 1.0;
+    const teamMult = teamMultipliers[teamSize] || 1.0;
+
+    const categories = Object.entries(costs).map(([name, [min, max]]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      min: Math.round(min * stageMult * teamMult),
+      max: Math.round(max * stageMult * teamMult),
+      note: getCostNote(name),
+    }));
+
+    const totalMin = categories.reduce((sum, c) => sum + c.min, 0);
+    const totalMax = categories.reduce((sum, c) => sum + c.max, 0);
+
+    const tips = getCostTips(businessType, stage);
+
+    res.json({ totalMin, totalMax, categories, tips, model: 'rule-based-fallback' });
+  }
 });
 
 function getCostNote(category) {
@@ -365,7 +420,7 @@ router.post("/validate-idea", async (req, res) => {
   try {
     // Use AI models if available, otherwise fallback to rule-based
     if (aiModelsLoaded) {
-      const aiResult = await aiService.validateIdeaWithAI(title, targetAudience, problem, solution, uniqueValue);
+      const aiResult = await aiService.validateIdeaWithAI(title, targetAudience, problem, solution, uniqueValue, competitors, category);
       res.json({
         ...aiResult,
         model: 'transformer-ai'
@@ -496,7 +551,7 @@ router.post("/business-model", async (req, res) => {
 });
 
 // Smart roadmap generator
-function generateRoadmap(title, category, stage) {
+function generateRoadmap(title, category, stage, description = '') {
   const catLower = (category || '').toLowerCase();
   const basePhases = [
     { 
@@ -552,12 +607,31 @@ function generateRoadmap(title, category, stage) {
 
 // POST /api/ai/roadmap
 router.post("/roadmap", async (req, res) => {
-  const { title, category, stage } = req.body || {};
+  const { title, category, stage, description } = req.body || {};
   if (!title) {
     return res.status(400).json({ message: "title is required" });
   }
 
-  res.json(generateRoadmap(title, category, stage));
+  try {
+    if (aiModelsLoaded) {
+      const aiResult = await aiService.buildRoadmapWithAI(title, category, stage, description);
+      return res.json({
+        ...aiResult,
+        model: 'transformer-ai'
+      });
+    }
+
+    res.json({
+      ...generateRoadmap(title, category, stage, description),
+      model: 'rule-based'
+    });
+  } catch (error) {
+    console.error("AI roadmap error:", error.message);
+    res.json({
+      ...generateRoadmap(title, category, stage, description),
+      model: 'rule-based-fallback'
+    });
+  }
 });
 
 module.exports = router;

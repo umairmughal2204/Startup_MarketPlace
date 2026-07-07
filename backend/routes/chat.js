@@ -1,8 +1,10 @@
 const express = require("express");
 const ChatThread = require("../models/ChatThread");
 const ChatMessage = require("../models/ChatMessage");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
+router.use(requireAuth);
 
 const normalizeParticipants = (participants = []) =>
   participants

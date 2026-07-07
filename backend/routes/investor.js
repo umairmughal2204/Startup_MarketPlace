@@ -1,8 +1,10 @@
 const express = require("express");
 const Feedback = require("../models/Feedback");
 const Idea = require("../models/Idea");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
+router.use(requireAuth);
 
 const toFeedbackResponse = (doc) => {
   const data = doc.toObject ? doc.toObject() : doc;

@@ -1,17 +1,14 @@
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
+import { getAuthHeaders } from './authHeaders';
 
-const getHeaders = () => {
-  const userId = localStorage.getItem('userId');
-  return {
-    'Content-Type': 'application/json',
-    'user-id': userId || '',
-  };
-};
+const getHeaders = () => getAuthHeaders('application/json');
 
 // ========== MENTORSHIP API ==========
 export const mentorshipApi = {
   async getMentors() {
-    const res = await fetch(`${API_BASE}/api/features/mentors`);
+    const res = await fetch(`${API_BASE}/api/features/mentors`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch mentors');
     return res.json();
   },
@@ -49,7 +46,9 @@ export const cofounderApi = {
     if (filters?.industry) params.append('industry', filters.industry);
     if (filters?.commitment) params.append('commitment', filters.commitment);
     
-    const res = await fetch(`${API_BASE}/api/features/cofounders?${params}`);
+    const res = await fetch(`${API_BASE}/api/features/cofounders?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch co-founders');
     return res.json();
   },
@@ -70,7 +69,9 @@ export const cofounderApi = {
   },
 
   async getCoFounderSkills() {
-    const res = await fetch(`${API_BASE}/api/features/cofounder-skills`);
+    const res = await fetch(`${API_BASE}/api/features/cofounder-skills`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch skills');
     return res.json();
   },
@@ -84,13 +85,17 @@ export const webinarApi = {
     if (filters?.level) params.append('level', filters.level);
     if (filters?.status) params.append('status', filters.status);
     
-    const res = await fetch(`${API_BASE}/api/features/webinars?${params}`);
+    const res = await fetch(`${API_BASE}/api/features/webinars?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch webinars');
     return res.json();
   },
 
   async getWebinar(id: string) {
-    const res = await fetch(`${API_BASE}/api/features/webinars/${id}`);
+    const res = await fetch(`${API_BASE}/api/features/webinars/${id}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch webinar');
     return res.json();
   },
@@ -151,13 +156,17 @@ export const resourceLibraryApi = {
     if (filters?.type) params.append('type', filters.type);
     if (filters?.category) params.append('category', filters.category);
     
-    const res = await fetch(`${API_BASE}/api/features/resources?${params}`);
+    const res = await fetch(`${API_BASE}/api/features/resources?${params}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch resources');
     return res.json();
   },
 
   async getResource(id: string) {
-    const res = await fetch(`${API_BASE}/api/features/resources/${id}`);
+    const res = await fetch(`${API_BASE}/api/features/resources/${id}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error('Failed to fetch resource');
     return res.json();
   },

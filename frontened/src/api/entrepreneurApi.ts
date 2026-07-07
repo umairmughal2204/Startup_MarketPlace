@@ -1,8 +1,11 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
+import { getAuthHeaders } from './authHeaders';
 
 export const entrepreneurApi = {
   async getIdeas() {
-    const res = await fetch(`${API_BASE}/api/entrepreneur/ideas`);
+    const res = await fetch(`${API_BASE}/api/entrepreneur/ideas`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch ideas");
     return res.json();
   },
@@ -17,6 +20,7 @@ export const entrepreneurApi = {
 
     const res = await fetch(`${API_BASE}/api/entrepreneur/ideas`, {
       method: "POST",
+      headers: getAuthHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error("Failed to create idea");
@@ -37,6 +41,7 @@ export const entrepreneurApi = {
 
     const res = await fetch(`${API_BASE}/api/entrepreneur/ideas/${id}`, {
       method: "PUT",
+      headers: getAuthHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error("Failed to update idea");
@@ -45,12 +50,15 @@ export const entrepreneurApi = {
   async deleteIdea(id: string) {
     const res = await fetch(`${API_BASE}/api/entrepreneur/ideas/${id}`, {
       method: "DELETE",
+      headers: getAuthHeaders(),
     });
     if (!res.ok) throw new Error("Failed to delete idea");
     return res.json();
   },
   async getOrders() {
-    const res = await fetch(`${API_BASE}/api/entrepreneur/orders`);
+    const res = await fetch(`${API_BASE}/api/entrepreneur/orders`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch orders");
     return res.json();
   },
@@ -64,7 +72,7 @@ export const entrepreneurApi = {
   }) {
     const res = await fetch(`${API_BASE}/api/entrepreneur/orders`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to create order");

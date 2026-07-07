@@ -3,8 +3,10 @@ const path = require("path");
 const multer = require("multer");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
+const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
+router.use(requireAuth);
 
 const uploadsDir = path.join(__dirname, "..", "uploads");
 const storage = multer.diskStorage({

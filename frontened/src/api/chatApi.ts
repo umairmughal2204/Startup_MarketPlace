@@ -1,4 +1,5 @@
 const API_BASE = (import.meta as any).env.VITE_API_BASE || "http://localhost:4000";
+import { getAuthHeaders } from './authHeaders';
 
 export type ChatThreadType = "role" | "direct" | "idea";
 
@@ -59,7 +60,9 @@ const mapMessage = (message: any): ChatMessage => ({
 export const chatApi = {
   async getThreads(userId: string, role: string) {
     const params = new URLSearchParams({ userId, role });
-    const res = await fetch(`${API_BASE}/api/chat/threads?${params.toString()}`);
+    const res = await fetch(`${API_BASE}/api/chat/threads?${params.toString()}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch chat threads");
     const data = await res.json();
     return (data || []).map(mapThread) as ChatThread[];
@@ -74,7 +77,7 @@ export const chatApi = {
   }) {
     const res = await fetch(`${API_BASE}/api/chat/threads`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to create chat thread");
@@ -83,7 +86,9 @@ export const chatApi = {
   },
   async getMessages(threadId: string) {
     const params = new URLSearchParams({ threadId });
-    const res = await fetch(`${API_BASE}/api/chat/messages?${params.toString()}`);
+    const res = await fetch(`${API_BASE}/api/chat/messages?${params.toString()}`, {
+      headers: getAuthHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to fetch messages");
     const data = await res.json();
     return (data || []).map(mapMessage) as ChatMessage[];
@@ -91,7 +96,7 @@ export const chatApi = {
   async sendMessage(payload: { threadId: string; sender: ChatParticipant; content: string }) {
     const res = await fetch(`${API_BASE}/api/chat/messages`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error("Failed to send message");
