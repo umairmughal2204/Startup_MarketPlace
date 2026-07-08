@@ -1,6 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const aiService = require("../services/aiService");
+const { hashString, mixSeed, pickIndependent } = aiService;
+
+const FALLBACK_STRENGTHS_POOL = [
+  "Clear concept with identifiable value proposition",
+  "Targets a defined audience segment",
+  "Potential for scalable growth in the chosen category",
+  "Reads as specific enough to test with a first cohort of users",
+  "Frames a concrete outcome rather than a vague ambition",
+  "Leaves room to iterate without a full pivot later",
+  "Shows early signs of a defensible market position",
+  "Grounded enough in the category to be evaluated quickly"
+];
+const FALLBACK_SUGGESTIONS_POOL = [
+  "Conduct primary market research to validate demand",
+  "Define a clear go-to-market strategy",
+  "Identify 2-3 direct competitors and your differentiation",
+  "Outline your revenue model and pricing strategy",
+  "Build an MVP to test core assumptions quickly",
+  "Talk to five potential users before writing another line of the plan",
+  "Put a number on the outcome you expect in the first month",
+  "Write the elevator pitch a stranger could repeat back correctly"
+];
+const FALLBACK_CONCERNS_POOL = [
+  "Market competition level needs deeper analysis",
+  "Initial funding requirements should be mapped out",
+  "Regulatory considerations may apply depending on region",
+  "Risk mitigation strategies should be documented",
+  "Customer acquisition cost has not been tested against real channels",
+  "Retention past the first session or use is still unproven",
+  "Unit economics have not been demonstrated at meaningful scale"
+];
 
 // Track AI model status
 let aiModelsLoaded = false;
@@ -47,64 +78,53 @@ function analyzeIdeaScore(title, category, description) {
   return Math.min(10, Math.max(1, parseFloat(score.toFixed(1))));
 }
 
+// Each getX() below draws from a pool (signal-matched phrases + a general bank) using
+// an independently-avalanched index per slot (see aiService.pickIndependent), instead
+// of always falling back to the same 3 hardcoded defaults. That fixed-default pattern
+// is what caused every idea lacking specific keywords to get identical feedback.
 function getStrengths(category, description) {
   const dl = description.toLowerCase();
-  const strengths = [];
-  
-  if (dl.includes('problem') || dl.includes('pain')) strengths.push("Clearly identifies a market pain point");
-  if (dl.includes('solution') || dl.includes('fix')) strengths.push("Proposes a specific solution approach");
-  if (dl.includes('market') || dl.includes('customer')) strengths.push("Demonstrates understanding of target market");
-  if (dl.includes('revenue') || dl.includes('monetiz')) strengths.push("Has a clear path to monetization");
-  if (dl.includes('scalable') || dl.includes('scale')) strengths.push("Shows potential for rapid scaling");
-  if (dl.includes('unique') || dl.includes('different')) strengths.push("Positions against existing alternatives");
-  
-  // Default strengths if none detected
-  if (strengths.length < 3) {
-    strengths.push("Clear concept with identifiable value proposition");
-    strengths.push("Targets a defined audience segment");
-    strengths.push("Potential for scalable growth in the chosen category");
-  }
-  
-  return strengths.slice(0, 3);
+  const seed = hashString(`${category}::${description}`);
+
+  const candidates = [];
+  if (dl.includes('problem') || dl.includes('pain')) candidates.push("Clearly identifies a market pain point");
+  if (dl.includes('solution') || dl.includes('fix')) candidates.push("Proposes a specific solution approach");
+  if (dl.includes('market') || dl.includes('customer')) candidates.push("Demonstrates understanding of target market");
+  if (dl.includes('revenue') || dl.includes('monetiz')) candidates.push("Has a clear path to monetization");
+  if (dl.includes('scalable') || dl.includes('scale')) candidates.push("Shows potential for rapid scaling");
+  if (dl.includes('unique') || dl.includes('different')) candidates.push("Positions against existing alternatives");
+
+  const pool = [...candidates, ...FALLBACK_STRENGTHS_POOL];
+  return pickIndependent(mixSeed(seed, 0x5b1e), pool, 3);
 }
 
 function getSuggestions(category, description) {
   const dl = description.toLowerCase();
-  const suggestions = [];
-  
-  if (!dl.includes('competitor')) suggestions.push("Identify 2-3 direct competitors and your differentiation");
-  if (!dl.includes('market research') && !dl.includes('interview')) suggestions.push("Conduct primary market research to validate demand");
-  if (!dl.includes('go-to-market') && !dl.includes('launch')) suggestions.push("Define a clear go-to-market strategy");
-  if (!dl.includes('revenue') && !dl.includes('monetiz')) suggestions.push("Outline your revenue model and pricing strategy");
-  if (!dl.includes('mvp') && !dl.includes('prototype')) suggestions.push("Build an MVP to test core assumptions quickly");
-  
-  // Default suggestions
-  if (suggestions.length < 3) {
-    suggestions.push("Conduct primary market research to validate demand");
-    suggestions.push("Define a clear go-to-market strategy");
-    suggestions.push("Identify 2-3 direct competitors and your differentiation");
-  }
-  
-  return suggestions.slice(0, 3);
+  const seed = hashString(`${category}::${description}`);
+
+  const candidates = [];
+  if (!dl.includes('competitor')) candidates.push("Identify 2-3 direct competitors and your differentiation");
+  if (!dl.includes('market research') && !dl.includes('interview')) candidates.push("Conduct primary market research to validate demand");
+  if (!dl.includes('go-to-market') && !dl.includes('launch')) candidates.push("Define a clear go-to-market strategy");
+  if (!dl.includes('revenue') && !dl.includes('monetiz')) candidates.push("Outline your revenue model and pricing strategy");
+  if (!dl.includes('mvp') && !dl.includes('prototype')) candidates.push("Build an MVP to test core assumptions quickly");
+
+  const pool = [...candidates, ...FALLBACK_SUGGESTIONS_POOL];
+  return pickIndependent(mixSeed(seed, 0x2f7c), pool, 3);
 }
 
 function getConcerns(category, description) {
   const dl = description.toLowerCase();
-  const concerns = [];
-  
-  if (!dl.includes('regulatory') && !dl.includes('compliance')) concerns.push("Regulatory considerations may apply depending on region");
-  if (!dl.includes('funding') && !dl.includes('capital')) concerns.push("Initial funding requirements should be mapped out");
-  if (!dl.includes('competition') && !dl.includes('competitor')) concerns.push("Market competition level needs deeper analysis");
-  if (!dl.includes('risk') && !dl.includes('challenge')) concerns.push("Risk mitigation strategies should be documented");
-  
-  // Default concerns
-  if (concerns.length < 3) {
-    concerns.push("Market competition level needs deeper analysis");
-    concerns.push("Initial funding requirements should be mapped out");
-    concerns.push("Regulatory considerations may apply depending on region");
-  }
-  
-  return concerns.slice(0, 3);
+  const seed = hashString(`${category}::${description}`);
+
+  const candidates = [];
+  if (!dl.includes('regulatory') && !dl.includes('compliance')) candidates.push("Regulatory considerations may apply depending on region");
+  if (!dl.includes('funding') && !dl.includes('capital')) candidates.push("Initial funding requirements should be mapped out");
+  if (!dl.includes('competition') && !dl.includes('competitor')) candidates.push("Market competition level needs deeper analysis");
+  if (!dl.includes('risk') && !dl.includes('challenge')) candidates.push("Risk mitigation strategies should be documented");
+
+  const pool = [...candidates, ...FALLBACK_CONCERNS_POOL];
+  return pickIndependent(mixSeed(seed, 0x8a41), pool, 3);
 }
 
 // POST /api/ai/analyze-idea

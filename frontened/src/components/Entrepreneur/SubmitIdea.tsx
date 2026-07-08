@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface IdeaSubmission {
   title: string;
@@ -29,6 +31,8 @@ export const SubmitIdea = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AIFeedback | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const categories = [
     'Technology',
@@ -46,15 +50,16 @@ export const SubmitIdea = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setFileError(null);
       // Check file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+        setFileError('File size must be less than 10MB');
         return;
       }
       // Check file type
       const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
       if (!allowedTypes.includes(file.type)) {
-        alert('Only PDF and DOCX files are allowed');
+        setFileError('Only PDF and DOCX files are allowed');
         return;
       }
       setFormData({ ...formData, file });
@@ -63,15 +68,19 @@ export const SubmitIdea = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isBlank(formData.title) || isBlank(formData.category) || isBlank(formData.description)) {
-      alert('Please complete all required idea fields.');
-      return;
+
+    const errors: Record<string, string> = {};
+    if (isBlank(formData.title)) errors.title = 'Idea title is required.';
+    if (isBlank(formData.category)) errors.category = 'Please select a category.';
+    if (isBlank(formData.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(formData.description);
+      if (descriptionError) errors.description = descriptionError;
     }
-    const descriptionError = validateMeaningfulDescription(formData.description);
-    if (descriptionError) {
-      alert(descriptionError);
-      return;
-    }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const confirmCreate = window.confirm('Submit this idea?');
     if (!confirmCreate) return;
     setIsSubmitting(true);
@@ -104,6 +113,7 @@ export const SubmitIdea = () => {
       };
 
       setAiAnalysis(realAIFeedback);
+      toast.success('Idea submitted successfully.');
       addNotification({
         type: 'general',
         title: 'Idea Submitted Successfully',
@@ -115,8 +125,11 @@ export const SubmitIdea = () => {
         description: '',
         file: null,
       });
+      setFieldErrors({});
     } catch (error) {
-      alert('Failed to submit idea. Please try again.');
+      if (error instanceof ApiError && error.errors) setFieldErrors(error.errors);
+      const message = error instanceof ApiError ? error.message : 'Failed to submit idea. Please try again.';
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,11 +155,16 @@ export const SubmitIdea = () => {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                  fieldErrors.title ? 'border-red-400' : 'border-gray-300'
+                }`}
                 placeholder="e.g., AI-Powered Fitness App"
-                required
               />
+              {fieldErrors.title && <p className="text-xs text-red-600 mt-1">{fieldErrors.title}</p>}
             </div>
 
             <div>
@@ -155,9 +173,13 @@ export const SubmitIdea = () => {
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
-                required
+                onChange={(e) => {
+                  setFormData({ ...formData, category: e.target.value });
+                  if (fieldErrors.category) setFieldErrors({ ...fieldErrors, category: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                  fieldErrors.category ? 'border-red-400' : 'border-gray-300'
+                }`}
               >
                 <option value="">Select a category</option>
                 {categories.map((cat) => (
@@ -166,6 +188,7 @@ export const SubmitIdea = () => {
                   </option>
                 ))}
               </select>
+              {fieldErrors.category && <p className="text-xs text-red-600 mt-1">{fieldErrors.category}</p>}
             </div>
 
             <div>
@@ -175,19 +198,26 @@ export const SubmitIdea = () => {
               <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
+                onChange={(e) => {
+                  setFormData({ ...formData, description: e.target.value });
+                  if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                  fieldErrors.description ? 'border-red-400' : 'border-gray-300'
+                }`}
                 rows={6}
                 placeholder="Describe your startup idea, target market, and unique value proposition..."
-                required
               />
+              {fieldErrors.description && <p className="text-xs text-red-600 mt-1">{fieldErrors.description}</p>}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Upload Document (Optional)
               </label>
-              <div className="border-2 border-dashed border-pink-200 bg-pink-50/40 rounded-2xl p-6 text-center hover:border-pink-400 transition">
+              <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${
+                fileError ? 'border-red-400 bg-red-50/40' : 'border-pink-200 bg-pink-50/40 hover:border-pink-400'
+              }`}>
                 <input
                   type="file"
                   onChange={handleFileChange}
@@ -239,6 +269,7 @@ export const SubmitIdea = () => {
                   )}
                 </label>
               </div>
+              {fileError && <p className="text-xs text-red-600 mt-1">{fileError}</p>}
             </div>
 
             <button

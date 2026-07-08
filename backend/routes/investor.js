@@ -2,9 +2,15 @@ const express = require("express");
 const Feedback = require("../models/Feedback");
 const Idea = require("../models/Idea");
 const { requireAuth } = require("../middleware/auth");
+const { validateBody, isIntInRange } = require("../utils/validate");
 
 const router = express.Router();
 router.use(requireAuth);
+
+const feedbackValidationRules = {
+  rating: { required: true, check: isIntInRange(1, 5), message: "Rating must be a whole number between 1 and 5" },
+  comment: { maxLength: 2000, message: "Comment must be at most 2000 characters" },
+};
 
 const toFeedbackResponse = (doc) => {
   const data = doc.toObject ? doc.toObject() : doc;
@@ -36,12 +42,12 @@ router.get("/feedback", async (req, res) => {
   }
 });
 
-router.post("/feedback", async (req, res) => {
+router.post(
+  "/feedback",
+  validateBody({ ideaId: { required: true }, ...feedbackValidationRules }),
+  async (req, res) => {
   try {
     const { ideaId, investorName, rating, comment } = req.body || {};
-    if (!ideaId || !rating) {
-      return res.status(400).json({ message: "ideaId and rating are required" });
-    }
 
     const idea = await Idea.findById(ideaId);
     if (!idea) {
@@ -63,9 +69,10 @@ router.post("/feedback", async (req, res) => {
   } catch (error) {
     res.status(400).json({ message: "Failed to create feedback" });
   }
-});
+  }
+);
 
-router.put("/feedback/:id", async (req, res) => {
+router.put("/feedback/:id", validateBody(feedbackValidationRules), async (req, res) => {
   try {
     const existing = await Feedback.findById(req.params.id);
     if (!existing) {

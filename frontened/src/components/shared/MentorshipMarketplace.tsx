@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { GraduationCap, Star, Clock, Search, MessageSquare, CheckCircle, Plus, X, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 import { useChat } from '../../context/ChatContext';
 import { useAuth } from '../../context/AuthContext';
 import { mentorshipApi } from '../../api/featuresApi';
 import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Mentor {
   _id: string;
@@ -36,6 +38,7 @@ export const MentorshipMarketplace = () => {
     hourlyRate: 50,
     mentorAvailability: 'Flexible',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchMentors = async () => {
     setIsLoading(true);
@@ -66,27 +69,39 @@ export const MentorshipMarketplace = () => {
     try {
       await mentorshipApi.bookSession(mentor._id);
       setBookedIds((prev) => new Set(prev).add(mentor._id));
+      toast.success(`Session requested with ${mentor.name}.`);
       openChatWithContact({ id: mentor._id, name: mentor.name, role: 'Entrepreneur' });
     } catch (err) {
-      alert('Failed to book session. Please try again.');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to book session. Please try again.');
     }
   };
 
   const handleBecomeMentor = async (e: React.FormEvent) => {
     e.preventDefault();
     const rate = parseValidatedNumber(mentorForm.hourlyRate, { min: 0, max: 10000, integer: true, label: 'Hourly rate' });
-    if (isBlank(mentorForm.mentorBio) || mentorForm.expertise.length === 0 || rate.error) {
-      alert(rate.error || 'Please complete all mentor fields.');
-      return;
+    const errors: Record<string, string> = {};
+    if (isBlank(mentorForm.mentorBio)) {
+      errors.mentorBio = 'Bio is required.';
+    } else if (mentorForm.mentorBio.trim().length < 20) {
+      errors.mentorBio = 'Bio must be at least 20 characters.';
     }
+    if (mentorForm.expertise.length === 0) {
+      errors.expertise = 'Select at least one area of expertise.';
+    }
+    if (rate.error) errors.hourlyRate = rate.error;
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await mentorshipApi.becomeMentor(mentorForm);
       setShowBecomeMentor(false);
+      setFormErrors({});
       fetchMentors();
-      alert('You are now listed as a mentor!');
-    } catch {
-      alert('Failed to become mentor. Please try again.');
+      toast.success('You are now listed as a mentor!');
+    } catch (err) {
+      if (err instanceof ApiError && err.errors) setFormErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to become mentor. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +129,10 @@ export const MentorshipMarketplace = () => {
             <p className="text-gray-600">Connect with experienced mentors who can guide you through your startup journey.</p>
           </div>
           <button
-            onClick={() => setShowBecomeMentor(true)}
+            onClick={() => {
+              setFormErrors({});
+              setShowBecomeMentor(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
           >
             <Plus className="w-4 h-4" /> Become a Mentor
@@ -136,12 +154,15 @@ export const MentorshipMarketplace = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Bio</label>
               <textarea
                 value={mentorForm.mentorBio}
-                onChange={(e) => setMentorForm({ ...mentorForm, mentorBio: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                onChange={(e) => {
+                  setMentorForm({ ...mentorForm, mentorBio: e.target.value });
+                  if (formErrors.mentorBio) setFormErrors({ ...formErrors, mentorBio: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.mentorBio ? 'border-red-400' : 'border-gray-300'}`}
                 rows={3}
                 placeholder="Describe your experience and what you can help with..."
-                required
               />
+              {formErrors.mentorBio && <p className="text-xs text-red-600 mt-1">{formErrors.mentorBio}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Expertise</label>
@@ -150,7 +171,10 @@ export const MentorshipMarketplace = () => {
                   <button
                     key={skill}
                     type="button"
-                    onClick={() => toggleExpertise(skill)}
+                    onClick={() => {
+                      toggleExpertise(skill);
+                      if (formErrors.expertise) setFormErrors({ ...formErrors, expertise: '' });
+                    }}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                       mentorForm.expertise.includes(skill)
                         ? 'bg-pink-500 text-white'
@@ -161,6 +185,7 @@ export const MentorshipMarketplace = () => {
                   </button>
                 ))}
               </div>
+              {formErrors.expertise && <p className="text-xs text-red-600 mt-1">{formErrors.expertise}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -175,12 +200,13 @@ export const MentorshipMarketplace = () => {
                     onChange={(e) => {
                       const value = sanitizeNumberInput(e.target.value, { maxLength: 5 });
                       setMentorForm({ ...mentorForm, hourlyRate: value ? Number(value) : 0 });
+                      if (formErrors.hourlyRate) setFormErrors({ ...formErrors, hourlyRate: '' });
                     }}
-                    className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-xl text-sm"
+                    className={`w-full pl-9 pr-4 py-3 border rounded-xl text-sm ${formErrors.hourlyRate ? 'border-red-400' : 'border-gray-300'}`}
                     min="0"
-                    required
                   />
                 </div>
+                {formErrors.hourlyRate && <p className="text-xs text-red-600 mt-1">{formErrors.hourlyRate}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Availability</label>

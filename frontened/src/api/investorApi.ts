@@ -1,5 +1,6 @@
 const API_BASE = (import.meta as any).env.VITE_API_BASE || "http://localhost:4000";
 import { getAuthHeaders } from './authHeaders';
+import { parseApiError } from './apiError';
 
 export const investorApi = {
   async getFeedback(ideaId?: string) {
@@ -7,7 +8,7 @@ export const investorApi = {
       ? `${API_BASE}/api/investor/feedback?ideaId=${encodeURIComponent(ideaId)}`
       : `${API_BASE}/api/investor/feedback`;
     const res = await fetch(url, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error("Failed to fetch feedback");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch feedback");
     return res.json();
   },
   async createFeedback(payload: { ideaId: string; investorName?: string; rating: number; comment?: string }) {
@@ -16,7 +17,7 @@ export const investorApi = {
       headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to create feedback");
+    if (!res.ok) throw await parseApiError(res, "Failed to create feedback");
     return res.json();
   },
   async updateFeedback(id: string, payload: { rating?: number; comment?: string }) {
@@ -25,7 +26,7 @@ export const investorApi = {
       headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to update feedback");
+    if (!res.ok) throw await parseApiError(res, "Failed to update feedback");
     return res.json();
   },
   async deleteFeedback(id: string) {
@@ -33,7 +34,7 @@ export const investorApi = {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to delete feedback");
+    if (!res.ok) throw await parseApiError(res, "Failed to delete feedback");
     return res.json();
   },
 };

@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Search, UserCheck, UserX, Mail, Shield, X, Building2, Briefcase, Calendar, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { UserRole, ProfessionalDetails, useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { ApiError } from '../../api/apiError';
 
 interface User {
   id: string;
@@ -29,23 +31,34 @@ export const ManageUsers = () => {
     user: null,
   });
   
-  const handleToggleStatus = (userId: string, name: string, currentStatus?: string) => {
-    toggleUserStatus(userId);
+  const handleToggleStatus = async (userId: string, name: string, currentStatus?: string) => {
     const nextStatus = currentStatus === 'Active' ? 'Suspended' : 'Active';
-    addNotification({
-      type: 'general',
-      title: `User ${nextStatus}`,
-      message: `${name} has been ${nextStatus.toLowerCase()}.`,
-    });
+    try {
+      await toggleUserStatus(userId);
+      toast.success(`${name} has been ${nextStatus.toLowerCase()}.`);
+      addNotification({
+        type: 'general',
+        title: `User ${nextStatus}`,
+        message: `${name} has been ${nextStatus.toLowerCase()}.`,
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : `Failed to ${nextStatus === 'Suspended' ? 'suspend' : 'activate'} ${name}.`);
+    }
   };
 
-  const handleToggleVerification = (userId: string, name: string, isVerified?: boolean) => {
-    approveUser(userId, !isVerified);
-    addNotification({
-      type: 'general',
-      title: !isVerified ? 'User Verified' : 'Verification Revoked',
-      message: `${name}'s professional details have been ${!isVerified ? 'verified' : 'unverified'}.`,
-    });
+  const handleToggleVerification = async (userId: string, name: string, isVerified?: boolean) => {
+    const willBeVerified = !isVerified;
+    try {
+      await approveUser(userId, willBeVerified);
+      toast.success(`${name}'s professional details have been ${willBeVerified ? 'verified' : 'unverified'}.`);
+      addNotification({
+        type: 'general',
+        title: willBeVerified ? 'User Verified' : 'Verification Revoked',
+        message: `${name}'s professional details have been ${willBeVerified ? 'verified' : 'unverified'}.`,
+      });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : `Failed to update verification for ${name}.`);
+    }
   };
 
   const filteredUsers = users.filter(user => {

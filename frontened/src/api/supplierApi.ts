@@ -1,12 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 import { getAuthHeaders } from './authHeaders';
+import { parseApiError } from './apiError';
 
 export const supplierApi = {
   async getProducts() {
     const res = await fetch(`${API_BASE}/api/supplier/products`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch products");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch products");
     return res.json();
   },
   async createProduct(payload: {
@@ -36,7 +37,7 @@ export const supplierApi = {
       headers: getAuthHeaders(),
       body: formData,
     });
-    if (!res.ok) throw new Error("Failed to create product");
+    if (!res.ok) throw await parseApiError(res, "Failed to create product");
     return res.json();
   },
   async updateProduct(
@@ -69,7 +70,7 @@ export const supplierApi = {
       headers: getAuthHeaders(),
       body: formData,
     });
-    if (!res.ok) throw new Error("Failed to update product");
+    if (!res.ok) throw await parseApiError(res, "Failed to update product");
     return res.json();
   },
   async deleteProduct(id: string) {
@@ -77,14 +78,14 @@ export const supplierApi = {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to delete product");
+    if (!res.ok) throw await parseApiError(res, "Failed to delete product");
     return res.json();
   },
   async getOrders() {
     const res = await fetch(`${API_BASE}/api/supplier/orders`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch orders");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch orders");
     return res.json();
   },
   async updateOrderStatus(id: string, status: string) {
@@ -93,7 +94,7 @@ export const supplierApi = {
       headers: getAuthHeaders("application/json"),
       body: JSON.stringify({ status }),
     });
-    if (!res.ok) throw new Error("Failed to update order status");
+    if (!res.ok) throw await parseApiError(res, "Failed to update order status");
     return res.json();
   },
 };

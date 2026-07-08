@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Filter, ShoppingCart, Star, X, CheckCircle } from 'lucide-react';
+import { Search, Filter, ShoppingCart, X, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { ProductDetail } from './ProductDetail';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { useAuth } from '../../context/AuthContext';
 import { supplierApi } from '../../api/supplierApi';
 import { parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
   name: string;
   supplier: string;
   price: number;
-  rating: number;
   image: string;
   category: string;
   description: string;
@@ -40,6 +41,7 @@ export const MarketPlace = () => {
     product: null,
   });
   const [quantity, setQuantity] = useState(1);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState<{ productName: string } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,7 +61,6 @@ export const MarketPlace = () => {
             name: p.name,
             supplier: p.supplierName || 'Supplier',
             price: p.price,
-            rating: 4.7,
             image: p.imageUrl ? `${API_BASE}${p.imageUrl}` : (p.image || ''),
             imageUrl: p.imageUrl || '',
             imageName: p.imageName || '',
@@ -106,15 +107,15 @@ export const MarketPlace = () => {
 
   const handleClosePaymentModal = () => {
     setPaymentModal({ isOpen: false, product: null });
+    setQuantity(1);
+    setQuantityError(null);
   };
 
   const handlePlaceOrder = async () => {
     if (!paymentModal.product) return;
     const quantityCheck = parseValidatedNumber(quantity, { min: 1, max: 999, integer: true, label: 'Quantity' });
-    if (quantityCheck.error) {
-      alert(quantityCheck.error);
-      return;
-    }
+    setQuantityError(quantityCheck.error);
+    if (quantityCheck.error) return;
 
     const confirmOrder = window.confirm('Place this order?');
     if (!confirmOrder) return;
@@ -129,6 +130,7 @@ export const MarketPlace = () => {
         entrepreneurEmail: user?.email || '',
       });
 
+      toast.success('Order placed successfully.');
       addNotification({
         type: 'order',
         title: 'Order Placed',
@@ -137,7 +139,7 @@ export const MarketPlace = () => {
       setOrderSuccess({ productName: paymentModal.product.name });
       handleClosePaymentModal();
     } catch (error) {
-      alert('Failed to place order. Please try again.');
+      toast.error(error instanceof ApiError ? error.message : 'Failed to place order. Please try again.');
     }
   };
 
@@ -213,9 +215,7 @@ export const MarketPlace = () => {
               <p className="text-sm text-gray-600 mb-3">{product.description}</p>
 
               <div className="flex items-center gap-1 mb-3">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-semibold">{product.rating}</span>
-                <span className="text-sm text-gray-500">• {product.supplier}</span>
+                <span className="text-sm text-gray-500">{product.supplier}</span>
               </div>
 
               <div className="flex items-center justify-between mb-4">
@@ -285,11 +285,15 @@ export const MarketPlace = () => {
                     onChange={(e) => {
                       const value = sanitizeNumberInput(e.target.value, { maxLength: 3 });
                       setQuantity(value ? Number(value) : 1);
+                      if (quantityError) setQuantityError(null);
                     }}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-right"
+                    className={`w-20 px-2 py-1 border rounded-lg text-right ${
+                      quantityError ? 'border-red-400' : 'border-gray-300'
+                    }`}
                   />
                 </div>
-                
+                {quantityError && <p className="text-xs text-red-600 text-right">{quantityError}</p>}
+
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
                   <span className="font-bold text-2xl text-pink-600">

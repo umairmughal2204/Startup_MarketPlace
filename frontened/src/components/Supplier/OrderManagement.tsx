@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Package, Clock, CheckCircle, Search, Truck } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
+import { ApiError } from '../../api/apiError';
 
 interface Order {
   id: string;
@@ -55,10 +57,11 @@ export const OrderManagement = () => {
       const updated = await supplierApi.updateOrderStatus(orderId, newStatus);
       setOrders(orders.map((order) => (order.id === orderId ? updated : order)));
     } catch (e) {
-      alert('Failed to update order status. Please try again.');
+      toast.error(e instanceof ApiError ? e.message : 'Failed to update order status. Please try again.');
       return;
     }
 
+    toast.success(`Order status changed to ${newStatus}.`);
     const order = orders.find((o) => o.id === orderId);
     if (order) {
       addNotification({

@@ -18,30 +18,113 @@ const CONTENT_VARIANTS = {
     'Shows early signs of a defensible market position',
     'Connects problem, audience, and outcome in a coherent way',
     'Hints at a credible path to adoption and retention',
-    'Signals enough specificity to support product iteration'
+    'Signals enough specificity to support product iteration',
+    'Demonstrates a workable balance between ambition and scope',
+    'Reads as something a first cohort of users could evaluate quickly',
+    'Frames the opportunity in language a customer would recognize',
+    'Leaves room to iterate without requiring a full pivot later',
+    'Suggests the founder has thought past the initial concept stage',
+    'Has a scope narrow enough to be testable within a few weeks',
+    'The framing gives an evaluator a concrete reason to keep reading',
+    'Positions the idea somewhere a first customer could plausibly say yes',
+    'Avoids the common trap of solving too many problems at once',
+    'Reads as grounded rather than purely aspirational'
   ],
   suggestions: [
     'Test the idea with a small user interview batch and capture repeated objections',
     'Add a sharper differentiation statement that explains why this wins now',
     'Describe the first measurable outcome your users should see',
     'Map the first acquisition channel before expanding the feature set',
-    'Turn the concept into a narrower MVP with one clear success metric'
+    'Turn the concept into a narrower MVP with one clear success metric',
+    'Pressure-test the core assumption with the smallest possible experiment',
+    'Write down the single objection most likely to stop a user from adopting this',
+    'Define what "working" looks like for the first 30 days after launch',
+    'Identify who would say no to this idea and why, then address it directly',
+    'Sketch the simplest version of this that could ship in two weeks',
+    'Talk to five potential users before writing another line of the plan',
+    'Decide what you would cut first if the timeline got cut in half',
+    'Put a number on the outcome you expect in the first month',
+    'Find the one existing workaround people use today and beat it directly',
+    'Write the elevator pitch a stranger could repeat back correctly'
   ],
   concerns: [
     'The proposal may need more proof around demand and willingness to pay',
     'Execution risk is still high until the first workflow is narrowed down',
     'Competitive pressure could be stronger than the current description suggests',
     'The monetization path should be made more explicit for decision making',
-    'Operational and compliance assumptions need validation before scaling'
+    'Operational and compliance assumptions need validation before scaling',
+    'It is not yet clear how this holds up against a well-funded competitor',
+    'The first 100 users may be harder to reach than the concept assumes',
+    'Retention risk is unclear until real usage data exists',
+    'The cost to acquire a customer has not been tested against realistic channels',
+    'Team or resourcing gaps could slow execution more than the idea itself',
+    'The idea may depend on a behavior change that is harder than it looks',
+    'Timing risk exists if a larger player enters this space first',
+    'The current framing does not yet rule out a much simpler alternative',
+    'Unit economics have not been demonstrated at any meaningful scale',
+    'It is unclear what happens to engagement after the novelty wears off'
   ],
   insights: [
     'The idea contains enough structure for an early validation loop',
     'The market signal is clearer than many pre-MVP concepts',
     'A sharper focus on the first customer segment would improve confidence',
     'The description already suggests where product-market fit may emerge',
-    'The strongest signal is likely in the workflow or pain-point detail'
+    'The strongest signal is likely in the workflow or pain-point detail',
+    'The concept sits closer to validated territory than most early submissions',
+    'There is enough specificity here to design a focused first experiment',
+    'The framing suggests the founder already has a working mental model of the user'
   ]
 };
+
+// Category-specific angle used to ensure ideas in the same category still get
+// differentiated feedback instead of converging on the same generic sentence.
+const CATEGORY_CONTENT = {
+  technology: {
+    strength: 'Sits in a category where automation or efficiency gains are easy for users to notice quickly',
+    suggestion: 'Clarify the concrete technical differentiation versus existing tools already in the market',
+    concern: 'Technical execution and platform reliability will need to be proven before scaling'
+  },
+  healthcare: {
+    strength: 'Health-oriented ideas carry strong intrinsic demand once trust and safety are established',
+    suggestion: 'Map the regulatory and compliance path early since healthcare adoption slows without it',
+    concern: 'Regulatory, privacy, and clinical trust requirements could slow adoption more than usual'
+  },
+  education: {
+    strength: 'Education concepts gain traction fastest when the learning outcome is easy to measure',
+    suggestion: 'Pilot with a small cohort of learners to measure real engagement before scaling content',
+    concern: 'Learner retention and completion rates are historically hard to sustain in this space'
+  },
+  'e-commerce': {
+    strength: 'E-commerce concepts can validate real demand quickly through small paid traffic tests',
+    suggestion: 'Test unit economics between acquisition cost and margin before committing to scale',
+    concern: 'Customer acquisition cost and fulfillment logistics often erode margins faster than expected'
+  },
+  finance: {
+    strength: 'Fintech-style ideas benefit from a clear trust and security story from day one',
+    suggestion: 'Clarify the compliance and licensing path relevant to the target market early',
+    concern: 'Regulatory compliance and consumer trust are typically the primary adoption barrier here'
+  },
+  sustainability: {
+    strength: 'Sustainability-led ideas resonate most when the environmental impact is quantifiable',
+    suggestion: 'Quantify the measurable environmental or resource impact to strengthen the pitch',
+    concern: 'Willingness to pay a premium for sustainability benefits can be inconsistent across segments'
+  },
+  entertainment: {
+    strength: 'Entertainment concepts succeed fastest when the core experience fits in one clear sentence',
+    suggestion: 'Test the core experience with a small audience before investing in content breadth',
+    concern: 'Attention is highly competitive here, so retention past the first session is the real test'
+  },
+  other: {
+    strength: 'Has enough shape as a concept to support a focused first validation pass',
+    suggestion: 'Narrow the category positioning so users and reviewers can classify the idea quickly',
+    concern: 'Without a clear category anchor, go-to-market messaging may be harder to focus'
+  }
+};
+
+function normalizeCategory(category) {
+  const key = String(category || '').trim().toLowerCase();
+  return CATEGORY_CONTENT[key] ? key : 'other';
+}
 
 function hashString(value) {
   let hash = 0;
@@ -53,9 +136,42 @@ function hashString(value) {
   return Math.abs(hash);
 }
 
+// Avalanches a seed + salt into a well-distributed 32-bit value (MurmurHash3 finalizer).
+// A plain seed+offset keeps the same residue class mod N for any N that divides the
+// offset gap, so two unrelated ideas whose seeds happen to share a remainder stay
+// "linked" across every pool draw. This decorrelates each draw instead.
+function mixSeed(seed, salt) {
+  let h = (seed ^ salt) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+
 function pickFromList(seed, list, offset = 0) {
   if (!list.length) return '';
   return list[(seed + offset) % list.length];
+}
+
+// Draws `count` items using an independently avalanched index per slot, instead of
+// walking a contiguous window through the list. A rotation window over a list of
+// length N only has N possible outcomes no matter how large N is drawn from; this
+// reaches close to the full C(N, count) combination space, which is what actually
+// keeps a large phrase pool from collapsing back down to a handful of repeats.
+function pickIndependent(seed, list, count) {
+  if (!list.length) return [];
+  const result = [];
+  const usedIdx = new Set();
+  let salt = 0;
+  while (result.length < count && usedIdx.size < list.length) {
+    const idx = mixSeed(seed, salt) % list.length;
+    salt += 1;
+    if (!usedIdx.has(idx)) {
+      usedIdx.add(idx);
+      result.push(list[idx]);
+    }
+  }
+  return result;
 }
 
 function pickUnique(seed, list, count) {
@@ -123,9 +239,9 @@ async function analyzeIdeaWithAI(title, category, description) {
   }
 
   const fullText = `${title}. ${description}`;
-  const seed = hashString(fullText);
-  const signals = extractSignals(fullText);
-  
+  const seed = hashString(`${fullText}::${category || 'Other'}`);
+  const signals = extractSignals(`${fullText} ${category || ''}`);
+
   // Sentiment analysis (confidence = quality indicator)
   const sentimentResult = await sentimentClassifier(fullText);
   const sentimentScore = sentimentResult[0].label === 'POSITIVE' 
@@ -152,13 +268,13 @@ async function analyzeIdeaWithAI(title, category, description) {
   ));
 
   // Generate strengths based on content
-  const strengths = await buildStrengths(description, embedding, seed, signals, confidence);
-  
+  const strengths = await buildStrengths(description, embedding, seed, signals, confidence, category);
+
   // Generate suggestions based on what's missing
-  const suggestions = await buildSuggestions(description, seed, signals);
-  
+  const suggestions = await buildSuggestions(description, seed, signals, category);
+
   // Generate concerns
-  const concerns = await buildConcerns(description, seed, signals, aiScore);
+  const concerns = await buildConcerns(description, seed, signals, aiScore, category);
 
   return {
     marketFit: parseFloat(Math.min(10, aiScore * 0.9 + 0.5).toFixed(1)),
@@ -260,73 +376,67 @@ async function validateIdeaWithAI(title, targetAudience, problem, solution, uniq
   };
 }
 
-function buildStrengths(description, embedding, seed, signals, confidence) {
-  const strengths = [];
+function buildStrengths(description, embedding, seed, signals, confidence, category) {
   const descLower = description.toLowerCase();
+  const categoryContent = CATEGORY_CONTENT[normalizeCategory(category)];
 
-  if (signals.hasProblem) strengths.push('Clearly identifies a real pain point');
-  if (signals.hasSolution) strengths.push('Proposes a concrete response rather than a vague concept');
-  if (signals.hasAudience) strengths.push('Targets a definable customer group');
-  if (signals.hasRevenue) strengths.push('Includes an early path to monetization');
-  if (signals.hasDifferentiation) strengths.push('Signals a meaningful competitive angle');
-  if (signals.hasScale) strengths.push('Shows potential for repeatable growth');
-
+  const candidates = [];
+  if (signals.hasProblem) candidates.push('Clearly identifies a real pain point');
+  if (signals.hasSolution) candidates.push('Proposes a concrete response rather than a vague concept');
+  if (signals.hasAudience) candidates.push('Targets a definable customer group');
+  if (signals.hasRevenue) candidates.push('Includes an early path to monetization');
+  if (signals.hasDifferentiation) candidates.push('Signals a meaningful competitive angle');
+  if (signals.hasScale) candidates.push('Shows potential for repeatable growth');
   if (descLower.includes('ai') || descLower.includes('automation')) {
-    strengths.push('Uses automation to reduce manual effort');
+    candidates.push('Uses automation to reduce manual effort');
+  }
+  if (confidence > 7.5) {
+    candidates.push('The model confidence is relatively strong for early-stage analysis');
   }
 
-  const remaining = pickUnique(seed, CONTENT_VARIANTS.strengths, 3);
-  for (const item of remaining) {
-    if (strengths.length >= 3) break;
-    if (!strengths.includes(item)) strengths.push(item);
-  }
-
-  if (confidence > 7.5 && strengths.length < 3) {
-    strengths.push('The model confidence is relatively strong for early-stage analysis');
-  }
-
-  return strengths.slice(0, 3);
+  // Pool candidates (signal-matched + the category line + the general phrase bank)
+  // together and draw 3 from the combined set with an avalanched seed. Drawing from
+  // one large pool instead of forcing a fixed category slot multiplies the number of
+  // distinct 3-item combinations, which is what actually keeps two ideas in the same
+  // category from converging on identical feedback as more submissions come in.
+  const pool = [...candidates, categoryContent.strength, ...CONTENT_VARIANTS.strengths];
+  const strengths = pickIndependent(mixSeed(seed, 0x5b1e), pool, 3);
+  return [...new Set(strengths)].slice(0, 3);
 }
 
-function buildSuggestions(description, seed, signals) {
-  const suggestions = [];
+function buildSuggestions(description, seed, signals, category) {
   const descLower = description.toLowerCase();
+  const categoryContent = CATEGORY_CONTENT[normalizeCategory(category)];
 
-  if (!signals.hasCompetition) suggestions.push('Name the closest competitors and explain the practical difference');
-  if (!signals.hasResearch) suggestions.push('Run a small validation loop with interviews, surveys, or landing-page tests');
-  if (!signals.hasRevenue) suggestions.push('Define pricing and the first monetization step');
+  const candidates = [];
+  if (!signals.hasCompetition) candidates.push('Name the closest competitors and explain the practical difference');
+  if (!signals.hasResearch) candidates.push('Run a small validation loop with interviews, surveys, or landing-page tests');
+  if (!signals.hasRevenue) candidates.push('Define pricing and the first monetization step');
   if (!descLower.includes('mvp') && !descLower.includes('prototype')) {
-    suggestions.push('Shrink the scope to the smallest usable MVP');
+    candidates.push('Shrink the scope to the smallest usable MVP');
   }
-  if (!signals.hasDifferentiation) suggestions.push('State one clear reason users would switch');
+  if (!signals.hasDifferentiation) candidates.push('State one clear reason users would switch');
 
-  const remaining = pickUnique(seed + 11, CONTENT_VARIANTS.suggestions, 3);
-  for (const item of remaining) {
-    if (suggestions.length >= 3) break;
-    if (!suggestions.includes(item)) suggestions.push(item);
-  }
-
-  return suggestions.slice(0, 3);
+  const pool = [...candidates, categoryContent.suggestion, ...CONTENT_VARIANTS.suggestions];
+  const suggestions = pickIndependent(mixSeed(seed, 0x2f7c), pool, 3);
+  return [...new Set(suggestions)].slice(0, 3);
 }
 
-function buildConcerns(description, seed, signals, aiScore) {
-  const concerns = [];
+function buildConcerns(description, seed, signals, aiScore, category) {
   const descLower = description.toLowerCase();
+  const categoryContent = CATEGORY_CONTENT[normalizeCategory(category)];
 
-  if (aiScore < 6) concerns.push('The concept needs stronger validation before confidence is high');
-  if (!signals.hasResearch) concerns.push('There is not enough evidence of user discovery yet');
-  if (!signals.hasRevenue) concerns.push('The revenue model is still under-defined');
-  if (!signals.hasRisk) concerns.push('Operational, legal, or compliance risk may be underestimated');
-  if (!signals.hasCompetition) concerns.push('Competitive positioning should be tested more directly');
-  if (descLower.length < 120) concerns.push('The problem and solution framing may be too thin for evaluation');
+  const candidates = [];
+  if (aiScore < 6) candidates.push('The concept needs stronger validation before confidence is high');
+  if (!signals.hasResearch) candidates.push('There is not enough evidence of user discovery yet');
+  if (!signals.hasRevenue) candidates.push('The revenue model is still under-defined');
+  if (!signals.hasRisk) candidates.push('Operational, legal, or compliance risk may be underestimated');
+  if (!signals.hasCompetition) candidates.push('Competitive positioning should be tested more directly');
+  if (descLower.length < 120) candidates.push('The problem and solution framing may be too thin for evaluation');
 
-  const remaining = pickUnique(seed + 23, CONTENT_VARIANTS.concerns, 3);
-  for (const item of remaining) {
-    if (concerns.length >= 3) break;
-    if (!concerns.includes(item)) concerns.push(item);
-  }
-
-  return concerns.slice(0, 3);
+  const pool = [...candidates, categoryContent.concern, ...CONTENT_VARIANTS.concerns];
+  const concerns = pickIndependent(mixSeed(seed, 0x8a41), pool, 3);
+  return [...new Set(concerns)].slice(0, 3);
 }
 
 function buildInsights(problem, solution, seed, signals) {
@@ -1176,5 +1286,8 @@ module.exports = {
   validateIdeaWithAI,
   generateBusinessModelWithAI,
   estimateCostWithAI,
-  buildRoadmapWithAI
+  buildRoadmapWithAI,
+  hashString,
+  mixSeed,
+  pickIndependent
 };

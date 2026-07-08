@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Shield } from 'lucide-react';
+import { toast } from 'sonner';
+import { isBlank, isValidEmail } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface AdminLoginPageProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -9,16 +12,38 @@ export const AdminLoginPage = ({ onLogin }: AdminLoginPageProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const validate = () => {
+    const errors: Record<string, string> = {};
+    if (isBlank(email)) {
+      errors.email = 'Email is required.';
+    } else if (!isValidEmail(email)) {
+      errors.email = 'Please enter a valid email address.';
+    }
+    if (isBlank(password)) {
+      errors.password = 'Password is required.';
+    }
+    return errors;
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+
+    const errors = validate();
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsLoading(true);
     try {
       await onLogin(email, password);
-    } catch (err: any) {
-      setError(err?.message || 'Admin login failed');
+    } catch (err: unknown) {
+      const message = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Admin login failed';
+      if (err instanceof ApiError && err.errors) setFieldErrors(err.errors);
+      setError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -43,26 +68,36 @@ export const AdminLoginPage = ({ onLogin }: AdminLoginPageProps) => {
           </div>
         )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-              required
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                fieldErrors.email ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {fieldErrors.email && <p className="text-xs text-red-600 mt-1">{fieldErrors.email}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
             <input
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
-              required
+              onChange={(event) => {
+                setPassword(event.target.value);
+                if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                fieldErrors.password ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {fieldErrors.password && <p className="text-xs text-red-600 mt-1">{fieldErrors.password}</p>}
           </div>
           <button
             type="submit"

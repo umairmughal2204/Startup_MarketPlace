@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Library, Search, Download, Clock, FileText, BookOpen, Lightbulb, Filter, Plus, X, Upload } from 'lucide-react';
+import { toast } from 'sonner';
 import { resourceLibraryApi } from '../../api/featuresApi';
 import { isBlank } from '../../utils/validation';
+import { useAuth } from '../../context/AuthContext';
+import { ApiError } from '../../api/apiError';
 
 interface Resource {
   _id: string;
@@ -39,6 +42,8 @@ const CATEGORIES = ['Strategy', 'Planning', 'Finance', 'Product', 'Sales', 'Fund
 const TYPES = ['Guide', 'Template', 'Case Study', 'Video', 'Tool'];
 
 export const ResourceLibrary = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [resources, setResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,6 +63,7 @@ export const ResourceLibrary = () => {
     readTime: '5 min',
     tags: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchResources = async () => {
     setIsLoading(true);
@@ -92,15 +98,17 @@ export const ResourceLibrary = () => {
       const result = await resourceLibraryApi.toggleSave(id);
       if (result.saved) {
         setSavedIds((prev) => new Set(prev).add(id));
+        toast.success('Resource saved.');
       } else {
         setSavedIds((prev) => {
           const next = new Set(prev);
           next.delete(id);
           return next;
         });
+        toast.success('Resource removed from saved.');
       }
-    } catch {
-      alert('Failed to save resource');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to save resource.');
     }
   };
 
@@ -115,31 +123,45 @@ export const ResourceLibrary = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isBlank(form.title) || isBlank(form.fileUrl) || isBlank(form.description) || isBlank(form.type) || isBlank(form.category)) {
-      alert('Please complete all required resource fields.');
-      return;
+    const errors: Record<string, string> = {};
+    if (isBlank(form.title)) {
+      errors.title = 'Title is required.';
     }
-    try {
-      new URL(form.fileUrl);
-    } catch {
-      alert('Please enter a valid file URL.');
-      return;
+    if (isBlank(form.description)) {
+      errors.description = 'Description is required.';
     }
+    if (isBlank(form.fileUrl)) {
+      errors.fileUrl = 'File URL is required.';
+    } else {
+      try {
+        new URL(form.fileUrl);
+      } catch {
+        errors.fileUrl = 'Please enter a valid file URL.';
+      }
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
     try {
+      const trimmedUrl = form.fileUrl.trim();
+      const derivedFileName = decodeURIComponent(trimmedUrl.split('/').pop() || trimmedUrl);
       await resourceLibraryApi.createResource({
         ...form,
         title: form.title.trim(),
         description: form.description.trim(),
-        fileUrl: form.fileUrl.trim(),
+        fileUrl: trimmedUrl,
+        fileName: derivedFileName,
         readTime: form.readTime.trim() || '5 min',
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
       });
       setShowCreate(false);
+      setFormErrors({});
       fetchResources();
-      alert('Resource uploaded successfully!');
-    } catch {
-      alert('Failed to upload resource');
+      toast.success('Resource uploaded successfully!');
+    } catch (err) {
+      if (err instanceof ApiError && err.errors) setFormErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to upload resource.');
     } finally {
       setIsSubmitting(false);
     }
@@ -159,17 +181,22 @@ export const ResourceLibrary = () => {
             </div>
             <p className="text-gray-600">Guides, templates, and case studies to help you build and grow your startup.</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
-          >
-            <Plus className="w-4 h-4" /> Upload Resource
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setFormErrors({});
+                setShowCreate(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
+            >
+              <Plus className="w-4 h-4" /> Upload Resource
+            </button>
+          )}
         </div>
       </div>
 
       {/* Create Resource Modal */}
-      {showCreate && (
+      {isAdmin && showCreate && (
         <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">Upload Resource</h3>
@@ -179,22 +206,41 @@ export const ResourceLibrary = () => {
           </div>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text" placeholder="Title" value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required
-              />
-              <input
-                type="text" placeholder="File URL" value={form.fileUrl}
-                onChange={(e) => setForm({ ...form, fileUrl: e.target.value })}
-                className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required
-              />
+              <div>
+                <input
+                  type="text" placeholder="Title" value={form.title}
+                  onChange={(e) => {
+                    setForm({ ...form, title: e.target.value });
+                    if (formErrors.title) setFormErrors({ ...formErrors, title: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.title ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.title && <p className="text-xs text-red-600 mt-1">{formErrors.title}</p>}
+              </div>
+              <div>
+                <input
+                  type="text" placeholder="File URL" value={form.fileUrl}
+                  onChange={(e) => {
+                    setForm({ ...form, fileUrl: e.target.value });
+                    if (formErrors.fileUrl) setFormErrors({ ...formErrors, fileUrl: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.fileUrl ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.fileUrl && <p className="text-xs text-red-600 mt-1">{formErrors.fileUrl}</p>}
+              </div>
             </div>
-            <textarea
-              placeholder="Description" value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm" rows={3} required
-            />
+            <div>
+              <textarea
+                placeholder="Description" value={form.description}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  if (formErrors.description) setFormErrors({ ...formErrors, description: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.description ? 'border-red-400' : 'border-gray-300'}`}
+                rows={3}
+              />
+              {formErrors.description && <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>}
+            </div>
             <div className="grid grid-cols-3 gap-4">
               <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-xl text-sm">
                 {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
@@ -252,7 +298,7 @@ export const ResourceLibrary = () => {
       {isLoading ? (
         <div className="text-center py-16 text-gray-400">Loading resources...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400"><Library className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No resources found. Upload the first one!</p></div>
+        <div className="text-center py-16 text-gray-400"><Library className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No resources found{isAdmin ? '. Upload the first one!' : '.'}</p></div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
           {filtered.map((resource) => {

@@ -1,12 +1,13 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:4000";
 import { getAuthHeaders } from './authHeaders';
+import { parseApiError } from './apiError';
 
 export const entrepreneurApi = {
   async getIdeas() {
     const res = await fetch(`${API_BASE}/api/entrepreneur/ideas`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch ideas");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch ideas");
     return res.json();
   },
   async createIdea(payload: { title: string; category: string; description: string; file?: File | null }) {
@@ -23,7 +24,7 @@ export const entrepreneurApi = {
       headers: getAuthHeaders(),
       body: formData,
     });
-    if (!res.ok) throw new Error("Failed to create idea");
+    if (!res.ok) throw await parseApiError(res, "Failed to create idea");
     return res.json();
   },
   async updateIdea(
@@ -44,7 +45,7 @@ export const entrepreneurApi = {
       headers: getAuthHeaders(),
       body: formData,
     });
-    if (!res.ok) throw new Error("Failed to update idea");
+    if (!res.ok) throw await parseApiError(res, "Failed to update idea");
     return res.json();
   },
   async deleteIdea(id: string) {
@@ -52,21 +53,21 @@ export const entrepreneurApi = {
       method: "DELETE",
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to delete idea");
+    if (!res.ok) throw await parseApiError(res, "Failed to delete idea");
     return res.json();
   },
   async getOrders() {
     const res = await fetch(`${API_BASE}/api/entrepreneur/orders`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch orders");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch orders");
     return res.json();
   },
   async getFeedback() {
     const res = await fetch(`${API_BASE}/api/entrepreneur/feedback`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error("Failed to fetch feedback");
+    if (!res.ok) throw await parseApiError(res, "Failed to fetch feedback");
     return res.json();
   },
   async createOrder(payload: {
@@ -82,7 +83,7 @@ export const entrepreneurApi = {
       headers: getAuthHeaders("application/json"),
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("Failed to create order");
+    if (!res.ok) throw await parseApiError(res, "Failed to create order");
     return res.json();
   },
 };

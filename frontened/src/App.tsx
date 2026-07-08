@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Toaster } from './components/ui/sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ChatProvider } from './context/ChatContext';
@@ -122,6 +123,7 @@ export default function App() {
     <AuthProvider>
       <NotificationProvider>
         <ChatProvider>
+          <Toaster richColors closeButton position="top-right" />
           <AppContent />
         </ChatProvider>
       </NotificationProvider>

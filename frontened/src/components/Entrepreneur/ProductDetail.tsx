@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Star, ShoppingCart, Package, Download, Shield, X, MessageCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Package, Download, Shield, X, MessageCircle, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { useAuth } from '../../context/AuthContext';
 import { parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
   name: string;
   supplier: string;
   price: number;
-  rating: number;
   image: string;
   category: string;
   description: string;
@@ -36,6 +37,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   const { user } = useAuth();
   const [paymentModal, setPaymentModal] = useState<PaymentModal>({ isOpen: false });
   const [quantity, setQuantity] = useState(1);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   // Enhanced product data
@@ -59,14 +61,14 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
 
   const handleClosePaymentModal = () => {
     setPaymentModal({ isOpen: false });
+    setQuantity(1);
+    setQuantityError(null);
   };
 
   const handlePlaceOrder = async () => {
     const quantityCheck = parseValidatedNumber(quantity, { min: 1, max: 999, integer: true, label: 'Quantity' });
-    if (quantityCheck.error) {
-      alert(quantityCheck.error);
-      return;
-    }
+    setQuantityError(quantityCheck.error);
+    if (quantityCheck.error) return;
 
     const confirmOrder = window.confirm('Place this order?');
     if (!confirmOrder) return;
@@ -81,6 +83,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
         entrepreneurEmail: user?.email || '',
       });
 
+      toast.success('Order placed successfully.');
       addNotification({
         type: 'order',
         title: 'Order Placed Successfully',
@@ -89,7 +92,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
       setOrderSuccess(true);
       handleClosePaymentModal();
     } catch (error) {
-      alert('Failed to place order. Please try again.');
+      toast.error(error instanceof ApiError ? error.message : 'Failed to place order. Please try again.');
     }
   };
 
@@ -157,15 +160,7 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-1">
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  <span className="font-semibold text-lg">{productData.rating}</span>
-                  <span className="text-gray-500">(128 reviews)</span>
-                </div>
-              </div>
-
-              <p className="text-gray-600 text-lg">{productData.fullDescription}</p>
+              <p className="text-gray-600 text-lg mt-2">{productData.fullDescription}</p>
             </div>
 
             {/* Price */}
@@ -281,11 +276,15 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
                     onChange={(e) => {
                       const value = sanitizeNumberInput(e.target.value, { maxLength: 3 });
                       setQuantity(value ? Number(value) : 1);
+                      if (quantityError) setQuantityError(null);
                     }}
-                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-right"
+                    className={`w-20 px-2 py-1 border rounded-lg text-right ${
+                      quantityError ? 'border-red-400' : 'border-gray-300'
+                    }`}
                   />
                 </div>
-                
+                {quantityError && <p className="text-xs text-red-600 text-right">{quantityError}</p>}
+
                 <div className="border-t border-gray-300 pt-3 flex justify-between">
                   <span className="font-bold text-lg">Total:</span>
                   <span className="font-bold text-2xl text-pink-600">${totalPrice.toFixed(2)}</span>

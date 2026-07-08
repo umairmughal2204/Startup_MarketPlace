@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Users, Search, MessageSquare, Star, Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useChat } from '../../context/ChatContext';
 import { cofounderApi } from '../../api/featuresApi';
 import { isBlank } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface CoFounder {
   _id: string;
@@ -35,6 +37,7 @@ export const CoFounderFinder = () => {
     equityExpectation: '',
     coFounderCommitment: 'Full-time',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const fetchCoFounders = async () => {
     setIsLoading(true);
@@ -61,10 +64,23 @@ export const CoFounderFinder = () => {
     }
   };
 
+  const fetchSentRequests = async () => {
+    try {
+      const sent = await cofounderApi.getSentRequests();
+      setRequestedIds(new Set(sent));
+    } catch {
+      // Non-critical: Connect buttons just won't show "Request Sent" until reload.
+    }
+  };
+
   useEffect(() => {
     fetchCoFounders();
     fetchSkills();
   }, [filterSkill, filterIndustry, filterCommitment]);
+
+  useEffect(() => {
+    fetchSentRequests();
+  }, []);
 
   const filtered = coFounders.filter((p) => {
     const q = search.toLowerCase();
@@ -72,25 +88,43 @@ export const CoFounderFinder = () => {
     return matchSearch;
   });
 
-  const handleConnect = (profile: CoFounder) => {
-    setRequestedIds((prev) => new Set(prev).add(profile._id));
-    openChatWithContact({ id: profile._id, name: profile.name, role: 'Entrepreneur' });
+  const handleConnect = async (profile: CoFounder) => {
+    try {
+      await cofounderApi.connect(profile._id);
+      setRequestedIds((prev) => new Set(prev).add(profile._id));
+      openChatWithContact({ id: profile._id, name: profile.name, role: 'Entrepreneur' });
+    } catch {
+      toast.error('Failed to send connect request. Please try again.');
+    }
   };
 
   const handleBecomeCoFounder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isBlank(form.coFounderBio) || form.coFounderSkills.length === 0 || isBlank(form.equityExpectation) || isBlank(form.coFounderCommitment)) {
-      alert('Please complete all co-founder profile fields.');
-      return;
+    const errors: Record<string, string> = {};
+    if (isBlank(form.coFounderBio)) {
+      errors.coFounderBio = 'Bio is required.';
+    } else if (form.coFounderBio.trim().length < 20) {
+      errors.coFounderBio = 'Bio must be at least 20 characters.';
     }
+    if (form.coFounderSkills.length === 0) {
+      errors.coFounderSkills = 'Select at least one skill.';
+    }
+    if (isBlank(form.equityExpectation)) {
+      errors.equityExpectation = 'Equity expectation is required.';
+    }
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await cofounderApi.becomeCoFounder(form);
       setShowBecomeCoFounder(false);
+      setFormErrors({});
       fetchCoFounders();
-      alert('You are now listed as seeking a co-founder!');
-    } catch {
-      alert('Failed to register. Please try again.');
+      toast.success('You are now listed as seeking a co-founder!');
+    } catch (err) {
+      if (err instanceof ApiError && err.errors) setFormErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to register. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -120,7 +154,10 @@ export const CoFounderFinder = () => {
             <p className="text-gray-600">Find the right co-founder with complementary skills to build your startup together.</p>
           </div>
           <button
-            onClick={() => setShowBecomeCoFounder(true)}
+            onClick={() => {
+              setFormErrors({});
+              setShowBecomeCoFounder(true);
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
           >
             <Plus className="w-4 h-4" /> List Me as Seeking
@@ -142,12 +179,17 @@ export const CoFounderFinder = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Your Bio</label>
               <textarea
                 value={form.coFounderBio}
-                onChange={(e) => setForm({ ...form, coFounderBio: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                onChange={(e) => {
+                  setForm({ ...form, coFounderBio: e.target.value });
+                  if (formErrors.coFounderBio) setFormErrors({ ...formErrors, coFounderBio: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl text-sm ${
+                  formErrors.coFounderBio ? 'border-red-400' : 'border-gray-300'
+                }`}
                 rows={3}
                 placeholder="Describe your background, what you bring, and what you're looking for..."
-                required
               />
+              {formErrors.coFounderBio && <p className="text-xs text-red-600 mt-1">{formErrors.coFounderBio}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Your Skills</label>
@@ -156,7 +198,10 @@ export const CoFounderFinder = () => {
                   <button
                     key={skill}
                     type="button"
-                    onClick={() => toggleSkill(skill)}
+                    onClick={() => {
+                      toggleSkill(skill);
+                      if (formErrors.coFounderSkills) setFormErrors({ ...formErrors, coFounderSkills: '' });
+                    }}
                     className={`px-3 py-1 rounded-full text-xs font-medium transition ${
                       form.coFounderSkills.includes(skill) ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
@@ -165,6 +210,7 @@ export const CoFounderFinder = () => {
                   </button>
                 ))}
               </div>
+              {formErrors.coFounderSkills && <p className="text-xs text-red-600 mt-1">{formErrors.coFounderSkills}</p>}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -172,10 +218,16 @@ export const CoFounderFinder = () => {
                 <input
                   type="text"
                   value={form.equityExpectation}
-                  onChange={(e) => setForm({ ...form, equityExpectation: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm"
+                  onChange={(e) => {
+                    setForm({ ...form, equityExpectation: e.target.value });
+                    if (formErrors.equityExpectation) setFormErrors({ ...formErrors, equityExpectation: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${
+                    formErrors.equityExpectation ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   placeholder="e.g., 20-40%"
                 />
+                {formErrors.equityExpectation && <p className="text-xs text-red-600 mt-1">{formErrors.equityExpectation}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Commitment</label>

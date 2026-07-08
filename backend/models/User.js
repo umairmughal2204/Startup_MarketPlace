@@ -120,6 +120,16 @@ const userSchema = new mongoose.Schema(
       enum: ['Full-time', 'Part-time', 'Flexible'],
       default: 'Full-time',
     },
+    coFounderRequestsSent: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
+    coFounderRequestsReceived: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+    },
     // Resource tracking
     savedResources: {
       type: [mongoose.Schema.Types.ObjectId],

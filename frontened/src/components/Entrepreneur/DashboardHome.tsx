@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp, X, Target, CheckCircle, AlertCircle, FileText, Edit3, Trash2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
+import { ApiError } from '../../api/apiError';
 
 interface IdeaItem {
   id: string;
@@ -47,6 +49,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
     status: 'Under Review',
     file: null as File | null,
   });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   const categories = [
     'Technology',
@@ -144,21 +147,30 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       status: selectedIdea.status,
       file: null,
     });
+    setEditErrors({});
     setIsEditing(true);
   };
 
   const handleUpdate = async () => {
     if (!selectedIdea) return;
 
+    const errors: Record<string, string> = {};
     if (isBlank(editForm.title)) {
-      alert('Title is required.');
-      return;
+      errors.title = 'Title is required.';
+    } else if (editForm.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters.';
     }
-    const descriptionError = validateMeaningfulDescription(editForm.description);
-    if (descriptionError) {
-      alert(descriptionError);
-      return;
+    if (isBlank(editForm.category)) {
+      errors.category = 'Please select a category.';
     }
+    if (isBlank(editForm.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(editForm.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     const confirmUpdate = window.confirm("Update this idea with the new changes?");
     if (!confirmUpdate) return;
@@ -175,8 +187,12 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       setSelectedIdea(updated);
       setIsEditing(false);
       setEditForm({ ...editForm, file: null });
+      toast.success('Idea updated successfully.');
     } catch (err) {
-      setError('Failed to update idea');
+      if (err instanceof ApiError && err.errors) setEditErrors(err.errors);
+      const message = err instanceof ApiError ? err.message : 'Failed to update idea.';
+      setError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -192,8 +208,9 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
       setIdeas((prev) => prev.filter((idea) => idea.id !== selectedIdea.id));
       setSelectedIdea(null);
       setIsEditing(false);
+      toast.success('Idea deleted.');
     } catch (err) {
-      setError('Failed to delete idea');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete idea.');
     } finally {
       setIsDeleting(false);
     }
@@ -480,16 +497,27 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                       <input
                         type="text"
                         value={editForm.title}
-                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
+                        onChange={(e) => {
+                          setEditForm({ ...editForm, title: e.target.value });
+                          if (editErrors.title) setEditErrors({ ...editErrors, title: '' });
+                        }}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                          editErrors.title ? 'border-red-400' : 'border-gray-300'
+                        }`}
                       />
+                      {editErrors.title && <p className="text-xs text-red-600 mt-1">{editErrors.title}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
                       <select
                         value={editForm.category}
-                        onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
+                        onChange={(e) => {
+                          setEditForm({ ...editForm, category: e.target.value });
+                          if (editErrors.category) setEditErrors({ ...editErrors, category: '' });
+                        }}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                          editErrors.category ? 'border-red-400' : 'border-gray-300'
+                        }`}
                       >
                         {categories.map((cat) => (
                           <option key={cat} value={cat}>
@@ -497,6 +525,7 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                           </option>
                         ))}
                       </select>
+                      {editErrors.category && <p className="text-xs text-red-600 mt-1">{editErrors.category}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
@@ -516,10 +545,16 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                       <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                       <textarea
                         value={editForm.description}
-                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400"
+                        onChange={(e) => {
+                          setEditForm({ ...editForm, description: e.target.value });
+                          if (editErrors.description) setEditErrors({ ...editErrors, description: '' });
+                        }}
+                        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-400 ${
+                          editErrors.description ? 'border-red-400' : 'border-gray-300'
+                        }`}
                         rows={4}
                       />
+                      {editErrors.description && <p className="text-xs text-red-600 mt-1">{editErrors.description}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Document</label>
@@ -633,7 +668,10 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
-                    onClick={() => setIsEditing(false)}
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditErrors({});
+                    }}
                     className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
                   >
                     Cancel
@@ -641,7 +679,11 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                 </>
               )}
               <button
-                onClick={() => setSelectedIdea(null)}
+                onClick={() => {
+                  setSelectedIdea(null);
+                  setIsEditing(false);
+                  setEditErrors({});
+                }}
                 className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
               >
                 Close

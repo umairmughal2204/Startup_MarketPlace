@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { User, Lock, Shield, Building2, Briefcase, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { isValidEmail, isValidPhone } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface SettingsPageProps {
   userName: string;
@@ -57,6 +59,8 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
   });
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [profileFieldErrors, setProfileFieldErrors] = useState<Record<string, string>>({});
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setProfileForm({
@@ -71,20 +75,18 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
     setStatusMessage(null);
     setStatusError(null);
 
-    if (!profileForm.name.trim() || !profileForm.email.trim()) {
-      setStatusError('Name and email are required.');
-      return;
+    const errors: Record<string, string> = {};
+    if (!profileForm.name.trim()) errors.name = 'Name is required.';
+    if (!profileForm.email.trim()) {
+      errors.email = 'Email is required.';
+    } else if (!isValidEmail(profileForm.email)) {
+      errors.email = 'Please enter a valid email address.';
     }
-
-    if (!isValidEmail(profileForm.email)) {
-      setStatusError('Please enter a valid email address.');
-      return;
-    }
-
     if (profileForm.phone.trim() && !isValidPhone(profileForm.phone)) {
-      setStatusError('Please enter a valid phone number.');
-      return;
+      errors.phone = 'Please enter a valid phone number.';
     }
+    setProfileFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     try {
       await updateProfile({
@@ -94,8 +96,12 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
         profileVisibility: profileForm.profileVisibility,
       });
       setStatusMessage('Profile updated successfully.');
+      toast.success('Profile updated successfully.');
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Unable to update profile.');
+      if (err instanceof ApiError && err.errors) setProfileFieldErrors(err.errors);
+      const message = err instanceof Error ? err.message : 'Unable to update profile.';
+      setStatusError(message);
+      toast.error(message);
     }
   };
 
@@ -103,20 +109,20 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
     setStatusMessage(null);
     setStatusError(null);
 
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      setStatusError('Please complete all password fields.');
-      return;
+    const errors: Record<string, string> = {};
+    if (!passwordForm.currentPassword) errors.currentPassword = 'Current password is required.';
+    if (!passwordForm.newPassword) {
+      errors.newPassword = 'New password is required.';
+    } else if (passwordForm.newPassword.length < 6) {
+      errors.newPassword = 'New password must be at least 6 characters.';
     }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setStatusError('New passwords do not match.');
-      return;
+    if (!passwordForm.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your new password.';
+    } else if (passwordForm.newPassword && passwordForm.newPassword !== passwordForm.confirmPassword) {
+      errors.confirmPassword = 'New passwords do not match.';
     }
-
-    if (passwordForm.newPassword.length < 6) {
-      setStatusError('New password must be at least 6 characters.');
-      return;
-    }
+    setPasswordFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
 
     try {
       await updatePassword(passwordForm.currentPassword, passwordForm.newPassword);
@@ -126,8 +132,12 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
         confirmPassword: '',
       });
       setStatusMessage('Password updated successfully.');
+      toast.success('Password updated successfully.');
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Unable to update password.');
+      if (err instanceof ApiError && err.errors) setPasswordFieldErrors(err.errors);
+      const message = err instanceof Error ? err.message : 'Unable to update password.';
+      setStatusError(message);
+      toast.error(message);
     }
   };
 
@@ -300,28 +310,46 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
             <input
               type="text"
               value={profileForm.name}
-              onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              onChange={(event) => {
+                setProfileForm({ ...profileForm, name: event.target.value });
+                if (profileFieldErrors.name) setProfileFieldErrors({ ...profileFieldErrors, name: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                profileFieldErrors.name ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {profileFieldErrors.name && <p className="text-xs text-red-600 mt-1">{profileFieldErrors.name}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
             <input
               type="email"
               value={profileForm.email}
-              onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              onChange={(event) => {
+                setProfileForm({ ...profileForm, email: event.target.value });
+                if (profileFieldErrors.email) setProfileFieldErrors({ ...profileFieldErrors, email: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                profileFieldErrors.email ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {profileFieldErrors.email && <p className="text-xs text-red-600 mt-1">{profileFieldErrors.email}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
             <input
               type="tel"
               value={profileForm.phone}
-              onChange={(event) => setProfileForm({ ...profileForm, phone: event.target.value })}
+              onChange={(event) => {
+                setProfileForm({ ...profileForm, phone: event.target.value });
+                if (profileFieldErrors.phone) setProfileFieldErrors({ ...profileFieldErrors, phone: '' });
+              }}
               placeholder="+1 (555) 000-0000"
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                profileFieldErrors.phone ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {profileFieldErrors.phone && <p className="text-xs text-red-600 mt-1">{profileFieldErrors.phone}</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Visibility</label>
@@ -356,31 +384,51 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
             <input
               type="password"
               value={passwordForm.currentPassword}
-              onChange={(event) =>
-                setPasswordForm({ ...passwordForm, currentPassword: event.target.value })
-              }
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              onChange={(event) => {
+                setPasswordForm({ ...passwordForm, currentPassword: event.target.value });
+                if (passwordFieldErrors.currentPassword) setPasswordFieldErrors({ ...passwordFieldErrors, currentPassword: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                passwordFieldErrors.currentPassword ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {passwordFieldErrors.currentPassword && (
+              <p className="text-xs text-red-600 mt-1">{passwordFieldErrors.currentPassword}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
             <input
               type="password"
               value={passwordForm.newPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              onChange={(event) => {
+                setPasswordForm({ ...passwordForm, newPassword: event.target.value });
+                if (passwordFieldErrors.newPassword) setPasswordFieldErrors({ ...passwordFieldErrors, newPassword: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                passwordFieldErrors.newPassword ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {passwordFieldErrors.newPassword && (
+              <p className="text-xs text-red-600 mt-1">{passwordFieldErrors.newPassword}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
             <input
               type="password"
               value={passwordForm.confirmPassword}
-              onChange={(event) =>
-                setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })
-              }
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
+              onChange={(event) => {
+                setPasswordForm({ ...passwordForm, confirmPassword: event.target.value });
+                if (passwordFieldErrors.confirmPassword) setPasswordFieldErrors({ ...passwordFieldErrors, confirmPassword: '' });
+              }}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
+                passwordFieldErrors.confirmPassword ? 'border-red-400' : 'border-gray-300'
+              }`}
             />
+            {passwordFieldErrors.confirmPassword && (
+              <p className="text-xs text-red-600 mt-1">{passwordFieldErrors.confirmPassword}</p>
+            )}
           </div>
           <button
             onClick={handleUpdatePassword}

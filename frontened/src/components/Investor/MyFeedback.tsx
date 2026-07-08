@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Pencil, Save, Star, Trash2, User, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { investorApi } from '../../api/investorApi';
+import { ApiError } from '../../api/apiError';
+
+const MAX_COMMENT_LENGTH = 2000;
 
 interface Feedback {
   id: string;
@@ -21,6 +25,7 @@ export const MyFeedback = () => {
   const [editRating, setEditRating] = useState(0);
   const [editComment, setEditComment] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -59,19 +64,22 @@ export const MyFeedback = () => {
     setEditingId(feedback.id);
     setEditRating(feedback.rating);
     setEditComment(feedback.comment || '');
+    setRatingError(null);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditRating(0);
     setEditComment('');
+    setRatingError(null);
   };
 
   const saveEdit = async (feedbackId: string) => {
     if (editRating === 0) {
-      alert('Please select a rating');
+      setRatingError('Please select a rating.');
       return;
     }
+    setRatingError(null);
     setIsSaving(true);
     try {
       const updated = await investorApi.updateFeedback(feedbackId, {
@@ -79,9 +87,10 @@ export const MyFeedback = () => {
         comment: editComment,
       });
       setFeedbacks((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success('Feedback updated.');
       cancelEdit();
     } catch (err) {
-      alert('Failed to update feedback');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update feedback');
     } finally {
       setIsSaving(false);
     }
@@ -94,8 +103,9 @@ export const MyFeedback = () => {
     try {
       await investorApi.deleteFeedback(feedbackId);
       setFeedbacks((prev) => prev.filter((item) => item.id !== feedbackId));
+      toast.success('Feedback deleted.');
     } catch (err) {
-      alert('Failed to delete feedback');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete feedback');
     } finally {
       setIsSaving(false);
     }
@@ -172,7 +182,10 @@ export const MyFeedback = () => {
                       <button
                         key={star}
                         type="button"
-                        onClick={() => setEditRating(star)}
+                        onClick={() => {
+                          setEditRating(star);
+                          setRatingError(null);
+                        }}
                         className="focus:outline-none transition"
                       >
                         <Star
@@ -183,15 +196,18 @@ export const MyFeedback = () => {
                       </button>
                     ))}
                   </div>
+                  {ratingError && <p className="text-xs text-red-600 mt-2">{ratingError}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Comment</label>
                   <textarea
                     value={editComment}
-                    onChange={(event) => setEditComment(event.target.value)}
+                    onChange={(event) => setEditComment(event.target.value.slice(0, MAX_COMMENT_LENGTH))}
                     rows={4}
+                    maxLength={MAX_COMMENT_LENGTH}
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
                   />
+                  <p className="text-xs text-gray-400 mt-1 text-right">{editComment.length}/{MAX_COMMENT_LENGTH}</p>
                 </div>
                 <div className="flex gap-3">
                   <button

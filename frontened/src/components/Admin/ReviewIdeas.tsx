@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, Edit, Save, X, XCircle, Target, User, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
-import { isBlank } from '../../utils/validation';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Idea {
   id: string;
@@ -29,6 +31,7 @@ export const ReviewIdeas = () => {
     description: '',
     status: 'Under Review' as Idea['status'],
   });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   const categories = [
     'Technology',
@@ -74,13 +77,15 @@ export const ReviewIdeas = () => {
         status,
       });
       setIdeas((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      const label = status === 'Approved' ? 'approved' : status === 'Rejected' ? 'rejected' : 'updated';
+      toast.success(`"${idea.title}" has been ${label}.`);
       addNotification({
         type: 'general',
-        title: status === 'Approved' ? 'Idea Approved' : 'Idea Rejected',
-        message: `"${idea.title}" has been ${status === 'Approved' ? 'approved' : 'rejected'}.`,
+        title: status === 'Approved' ? 'Idea Approved' : status === 'Rejected' ? 'Idea Rejected' : 'Idea Status Updated',
+        message: `"${idea.title}" has been ${label}.`,
       });
     } catch (err) {
-      alert('Failed to update idea status');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update idea status.');
     }
   };
 
@@ -101,20 +106,41 @@ export const ReviewIdeas = () => {
       description: idea.description,
       status: idea.status,
     });
+    setEditErrors({});
     setShowEditModal(true);
   };
 
   const closeEdit = () => {
     setShowEditModal(false);
     setEditingIdea(null);
+    setEditErrors({});
+  };
+
+  const validateEditForm = () => {
+    const errors: Record<string, string> = {};
+    if (isBlank(editForm.title)) {
+      errors.title = 'Title is required.';
+    } else if (editForm.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters.';
+    }
+    if (isBlank(editForm.category)) {
+      errors.category = 'Please select a category.';
+    }
+    if (isBlank(editForm.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(editForm.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
+    return errors;
   };
 
   const handleSaveEdit = async () => {
     if (!editingIdea) return;
-    if (isBlank(editForm.title) || isBlank(editForm.category) || isBlank(editForm.description)) {
-      alert('Please complete all idea fields.');
-      return;
-    }
+    const errors = validateEditForm();
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const confirmUpdate = window.confirm('Update this idea?');
     if (!confirmUpdate) return;
     setIsSaving(true);
@@ -126,6 +152,7 @@ export const ReviewIdeas = () => {
         status: editForm.status,
       });
       setIdeas((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(`"${updated.title}" has been updated.`);
       addNotification({
         type: 'general',
         title: 'Idea Updated',
@@ -133,7 +160,8 @@ export const ReviewIdeas = () => {
       });
       closeEdit();
     } catch (err) {
-      alert('Failed to update idea');
+      if (err instanceof ApiError && err.errors) setEditErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update idea.');
     } finally {
       setIsSaving(false);
     }
@@ -327,23 +355,36 @@ export const ReviewIdeas = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
                 <input
                   value={editForm.title}
-                  onChange={(event) => setEditForm({ ...editForm, title: event.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, title: event.target.value });
+                    if (editErrors.title) setEditErrors({ ...editErrors, title: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.title ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 />
+                {editErrors.title && <p className="text-xs text-red-600 mt-1">{editErrors.title}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
                 <select
                   value={editForm.category}
-                  onChange={(event) => setEditForm({ ...editForm, category: event.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, category: event.target.value });
+                    if (editErrors.category) setEditErrors({ ...editErrors, category: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.category ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 >
+                  <option value="">Select a category</option>
                   {categories.map((category) => (
                     <option key={category} value={category}>
                       {category}
                     </option>
                   ))}
                 </select>
+                {editErrors.category && <p className="text-xs text-red-600 mt-1">{editErrors.category}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
@@ -364,10 +405,16 @@ export const ReviewIdeas = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                 <textarea
                   value={editForm.description}
-                  onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, description: event.target.value });
+                    if (editErrors.description) setEditErrors({ ...editErrors, description: '' });
+                  }}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.description ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 />
+                {editErrors.description && <p className="text-xs text-red-600 mt-1">{editErrors.description}</p>}
               </div>
               <div className="flex gap-4 pt-2">
                 <button

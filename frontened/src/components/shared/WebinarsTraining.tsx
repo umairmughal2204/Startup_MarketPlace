@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Play, Clock, Users, Star, Calendar, Search, BookOpen, Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { webinarApi } from '../../api/featuresApi';
 import { useAuth } from '../../context/AuthContext';
 import { isBlank, parseValidatedNumber } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Webinar {
   _id: string;
@@ -37,6 +39,8 @@ export const WebinarsTraining = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const canHost = user?.role === 'Admin' || user?.isMentor;
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
     title: '',
@@ -86,9 +90,10 @@ export const WebinarsTraining = () => {
     try {
       await webinarApi.enroll(webinarId);
       setEnrolledIds((prev) => new Set(prev).add(webinarId));
+      toast.success('Enrolled successfully.');
       fetchWebinars();
-    } catch (err: any) {
-      alert(err.message || 'Failed to enroll');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to enroll.');
     }
   };
 
@@ -100,23 +105,20 @@ export const WebinarsTraining = () => {
       integer: true,
       label: 'Maximum participants',
     });
-    if (
-      isBlank(form.title) ||
-      isBlank(form.instructor) ||
-      isBlank(form.description) ||
-      isBlank(form.category) ||
-      isBlank(form.level) ||
-      isBlank(form.duration) ||
-      isBlank(form.date) ||
-      participants.error
-    ) {
-      alert(participants.error || 'Please complete all required webinar fields.');
-      return;
+    const errors: Record<string, string> = {};
+    if (isBlank(form.title)) errors.title = 'Title is required.';
+    if (isBlank(form.instructor)) errors.instructor = 'Instructor name is required.';
+    if (isBlank(form.description)) errors.description = 'Description is required.';
+    if (isBlank(form.duration)) errors.duration = 'Duration is required.';
+    if (isBlank(form.date)) {
+      errors.date = 'Date is required.';
+    } else if (new Date(form.date) <= new Date()) {
+      errors.date = 'Webinar date must be in the future.';
     }
-    if (new Date(form.date) <= new Date()) {
-      alert('Webinar date must be in the future.');
-      return;
-    }
+    if (participants.error) errors.maxParticipants = participants.error;
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await webinarApi.createWebinar({
@@ -128,10 +130,12 @@ export const WebinarsTraining = () => {
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
       });
       setShowCreate(false);
+      setFormErrors({});
       fetchWebinars();
-      alert('Webinar created successfully!');
-    } catch {
-      alert('Failed to create webinar');
+      toast.success('Webinar created successfully!');
+    } catch (err) {
+      if (err instanceof ApiError && err.errors) setFormErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to create webinar.');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,17 +153,22 @@ export const WebinarsTraining = () => {
             </div>
             <p className="text-gray-600">Online courses and live sessions to develop your business skills and knowledge.</p>
           </div>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
-          >
-            <Plus className="w-4 h-4" /> Host Webinar
-          </button>
+          {canHost && (
+            <button
+              onClick={() => {
+                setFormErrors({});
+                setShowCreate(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold hover:shadow-md transition"
+            >
+              <Plus className="w-4 h-4" /> Host Webinar
+            </button>
+          )}
         </div>
       </div>
 
       {/* Create Webinar Modal */}
-      {showCreate && (
+      {canHost && showCreate && (
         <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-800">Create Webinar</h3>
@@ -169,22 +178,41 @@ export const WebinarsTraining = () => {
           </div>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <input
-                type="text" placeholder="Title" value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required
-              />
-              <input
-                type="text" placeholder="Instructor Name" value={form.instructor}
-                onChange={(e) => setForm({ ...form, instructor: e.target.value })}
-                className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required
-              />
+              <div>
+                <input
+                  type="text" placeholder="Title" value={form.title}
+                  onChange={(e) => {
+                    setForm({ ...form, title: e.target.value });
+                    if (formErrors.title) setFormErrors({ ...formErrors, title: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.title ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.title && <p className="text-xs text-red-600 mt-1">{formErrors.title}</p>}
+              </div>
+              <div>
+                <input
+                  type="text" placeholder="Instructor Name" value={form.instructor}
+                  onChange={(e) => {
+                    setForm({ ...form, instructor: e.target.value });
+                    if (formErrors.instructor) setFormErrors({ ...formErrors, instructor: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.instructor ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.instructor && <p className="text-xs text-red-600 mt-1">{formErrors.instructor}</p>}
+              </div>
             </div>
-            <textarea
-              placeholder="Description" value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm" rows={3} required
-            />
+            <div>
+              <textarea
+                placeholder="Description" value={form.description}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  if (formErrors.description) setFormErrors({ ...formErrors, description: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.description ? 'border-red-400' : 'border-gray-300'}`}
+                rows={3}
+              />
+              {formErrors.description && <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>}
+            </div>
             <div className="grid grid-cols-4 gap-4">
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-xl text-sm">
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -192,8 +220,28 @@ export const WebinarsTraining = () => {
               <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-xl text-sm">
                 {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
               </select>
-              <input type="datetime-local" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required />
-              <input type="text" placeholder="Duration (e.g., 60 min)" value={form.duration} onChange={(e) => setForm({ ...form, duration: e.target.value })} className="px-4 py-3 border border-gray-300 rounded-xl text-sm" required />
+              <div>
+                <input
+                  type="datetime-local" value={form.date}
+                  onChange={(e) => {
+                    setForm({ ...form, date: e.target.value });
+                    if (formErrors.date) setFormErrors({ ...formErrors, date: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.date ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.date && <p className="text-xs text-red-600 mt-1">{formErrors.date}</p>}
+              </div>
+              <div>
+                <input
+                  type="text" placeholder="Duration (e.g., 60 min)" value={form.duration}
+                  onChange={(e) => {
+                    setForm({ ...form, duration: e.target.value });
+                    if (formErrors.duration) setFormErrors({ ...formErrors, duration: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl text-sm ${formErrors.duration ? 'border-red-400' : 'border-gray-300'}`}
+                />
+                {formErrors.duration && <p className="text-xs text-red-600 mt-1">{formErrors.duration}</p>}
+              </div>
             </div>
             <input type="text" placeholder="Tags (comma separated)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm" />
             <button type="submit" disabled={isSubmitting} className="w-full py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50">
@@ -248,7 +296,7 @@ export const WebinarsTraining = () => {
       {isLoading ? (
         <div className="text-center py-16 text-gray-400">Loading webinars...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No webinars found. Create the first one!</p></div>
+        <div className="text-center py-16 text-gray-400"><BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" /><p>No webinars found{canHost ? '. Create the first one!' : '.'}</p></div>
       ) : (
         <div className="grid md:grid-cols-2 gap-5">
           {filtered.map((webinar) => {

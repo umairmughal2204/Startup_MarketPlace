@@ -11,7 +11,6 @@ const investorRoutes = require("./routes/investor");
 const chatRoutes = require("./routes/chat");
 const authRoutes = require("./routes/auth");
 const aiRoutes = require("./routes/ai");
-const resourceRoutes = require("./routes/resources");
 const featureRoutes = require("./routes/features");
 const User = require("./models/User");
 
@@ -33,12 +32,21 @@ app.use("/api/investor", investorRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/ai", aiRoutes);
-app.use("/api/resources", resourceRoutes);
 app.use("/api/features", featureRoutes);
 
 // Simple health check route
 app.get("/", (req, res) => {
   res.json({ message: "Backend is running" });
+});
+
+// Catch-all error handler: ensures errors thrown by middleware (e.g. multer file
+// filters/size limits) reach the client as JSON instead of Express's default HTML page,
+// which would otherwise fail to parse on the frontend and surface a generic error.
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  console.error("Unhandled request error:", error);
+  const status = error.status || error.statusCode || (error.code === "LIMIT_FILE_SIZE" ? 413 : 400);
+  res.status(status).json({ message: error.message || "Something went wrong" });
 });
 
 const startServer = async () => {

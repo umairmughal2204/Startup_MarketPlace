@@ -1,15 +1,41 @@
 const express = require("express");
+const fs = require("fs");
 const path = require("path");
 const multer = require("multer");
 const Idea = require("../models/Idea");
 const Order = require("../models/Order");
 const Feedback = require("../models/Feedback");
 const { requireAuth } = require("../middleware/auth");
+const { validateBody, isOneOf, isPositiveNumber, isIntInRange, isMeaningfulText } = require("../utils/validate");
 
 const router = express.Router();
 router.use(requireAuth);
 
+const IDEA_CATEGORIES = [
+  "Technology",
+  "Healthcare",
+  "Education",
+  "E-commerce",
+  "Finance",
+  "Sustainability",
+  "Entertainment",
+  "Other",
+];
+
+const ideaValidationRules = {
+  title: { required: true, minLength: 3, maxLength: 150 },
+  category: { required: true, check: isOneOf(IDEA_CATEGORIES), message: "Please select a valid category" },
+  description: {
+    required: true,
+    minLength: 20,
+    minLengthMessage: "Description must be at least 20 characters",
+    check: isMeaningfulText,
+    checkMessage: "Please enter a valid, meaningful description written in full sentences",
+  },
+};
+
 const uploadsDir = path.join(__dirname, "..", "uploads");
+fs.mkdirSync(uploadsDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -120,14 +146,9 @@ const generateAIScore = (title, description) => {
   return Math.min(10, Math.max(1, parseFloat(score.toFixed(1))));
 };
 
-router.post("/ideas", upload.single("document"), async (req, res) => {
+router.post("/ideas", upload.single("document"), validateBody(ideaValidationRules), async (req, res) => {
   try {
     const { title, category, description } = req.body || {};
-    if (!title || !category || !description) {
-      return res
-        .status(400)
-        .json({ message: "title, category, and description are required" });
-    }
 
     // Generate AI score based on idea content
     const aiScore = generateAIScore(title, description);
@@ -149,11 +170,12 @@ router.post("/ideas", upload.single("document"), async (req, res) => {
 
     res.status(201).json(toIdeaResponse(newIdea));
   } catch (error) {
+    console.error("POST /ideas failed:", error);
     res.status(500).json({ message: "Failed to create idea" });
   }
 });
 
-router.put("/ideas/:id", upload.single("document"), async (req, res) => {
+router.put("/ideas/:id", upload.single("document"), validateBody(ideaValidationRules), async (req, res) => {
   try {
     const existing = await Idea.findById(req.params.id);
     if (!existing) {
@@ -227,14 +249,17 @@ router.get("/orders/:id", async (req, res) => {
   }
 });
 
-router.post("/orders", async (req, res) => {
+router.post(
+  "/orders",
+  validateBody({
+    productName: { required: true },
+    supplier: { required: true },
+    quantity: { required: true, check: isIntInRange(1, 999), message: "Quantity must be a whole number between 1 and 999" },
+    price: { required: true, check: isPositiveNumber, message: "Price must be a positive number" },
+  }),
+  async (req, res) => {
   try {
     const { productName, supplier, quantity, price, entrepreneurName, entrepreneurEmail } = req.body || {};
-    if (!productName || !supplier || !quantity || !price) {
-      return res
-        .status(400)
-        .json({ message: "productName, supplier, quantity, and price are required" });
-    }
 
     const orderDate = new Date().toISOString().slice(0, 10);
     const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -258,7 +283,8 @@ router.post("/orders", async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Failed to create order" });
   }
-});
+  }
+);
 
 router.get("/feedback", async (req, res) => {
   try {

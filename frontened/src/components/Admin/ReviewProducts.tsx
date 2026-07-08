@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, DollarSign, Edit, Save, X, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
-import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
+import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput, validateMeaningfulDescription } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
@@ -33,6 +35,7 @@ export const ReviewProducts = () => {
     category: '',
     status: 'Pending' as Product['status'],
   });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
   const categories = ['Software', 'Hardware', 'Services', 'Marketing', 'Legal', 'Other'];
@@ -78,13 +81,15 @@ export const ReviewProducts = () => {
         status,
       });
       setProducts((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      const label = status === 'Approved' ? 'approved' : status === 'Rejected' ? 'rejected' : 'updated';
+      toast.success(`"${product.name}" has been ${label}.`);
       addNotification({
         type: 'general',
-        title: status === 'Approved' ? 'Product Approved' : 'Product Rejected',
-        message: `"${product.name}" has been ${status === 'Approved' ? 'approved' : 'rejected'}.`,
+        title: status === 'Approved' ? 'Product Approved' : status === 'Rejected' ? 'Product Rejected' : 'Product Status Updated',
+        message: `"${product.name}" has been ${label}.`,
       });
     } catch (err) {
-      alert('Failed to update product status');
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update product status.');
     }
   };
 
@@ -106,21 +111,41 @@ export const ReviewProducts = () => {
       category: product.category,
       status: product.status,
     });
+    setEditErrors({});
     setShowEditModal(true);
   };
 
   const closeEdit = () => {
     setShowEditModal(false);
     setEditingProduct(null);
+    setEditErrors({});
+  };
+
+  const validateEditForm = () => {
+    const errors: Record<string, string> = {};
+    if (isBlank(editForm.name)) {
+      errors.name = 'Product name is required.';
+    }
+    if (isBlank(editForm.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(editForm.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
+    if (isBlank(editForm.category)) {
+      errors.category = 'Please select a category.';
+    }
+    const price = parseValidatedNumber(editForm.price, { min: 0.01, label: 'Price' });
+    if (price.error) errors.price = price.error;
+    return errors;
   };
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
-    const price = parseValidatedNumber(editForm.price, { min: 0.01, label: 'Price' });
-    if (isBlank(editForm.name) || isBlank(editForm.description) || isBlank(editForm.category) || price.error) {
-      alert(price.error || 'Please complete all product fields.');
-      return;
-    }
+    const errors = validateEditForm();
+    setEditErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const confirmUpdate = window.confirm('Update this product?');
     if (!confirmUpdate) return;
     setIsSaving(true);
@@ -135,6 +160,7 @@ export const ReviewProducts = () => {
         status: editForm.status,
       });
       setProducts((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success(`"${updated.name}" has been updated.`);
       addNotification({
         type: 'general',
         title: 'Product Updated',
@@ -142,7 +168,8 @@ export const ReviewProducts = () => {
       });
       closeEdit();
     } catch (err) {
-      alert('Failed to update product');
+      if (err instanceof ApiError && err.errors) setEditErrors(err.errors);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update product.');
     } finally {
       setIsSaving(false);
     }
@@ -339,23 +366,36 @@ export const ReviewProducts = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
                 <input
                   value={editForm.name}
-                  onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, name: event.target.value });
+                    if (editErrors.name) setEditErrors({ ...editErrors, name: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.name ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 />
+                {editErrors.name && <p className="text-xs text-red-600 mt-1">{editErrors.name}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Category</label>
                 <select
                   value={editForm.category}
-                  onChange={(event) => setEditForm({ ...editForm, category: event.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, category: event.target.value });
+                    if (editErrors.category) setEditErrors({ ...editErrors, category: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.category ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 >
+                  <option value="">Select category</option>
                   {categories.map((category) => (
                     <option key={category} value={category}>
                       {category}
                     </option>
                   ))}
                 </select>
+                {editErrors.category && <p className="text-xs text-red-600 mt-1">{editErrors.category}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
@@ -381,18 +421,28 @@ export const ReviewProducts = () => {
                   onChange={(event) => {
                     const value = sanitizeNumberInput(event.target.value, { allowDecimal: true, maxLength: 10 });
                     setEditForm({ ...editForm, price: value ? Number(value) : 0 });
+                    if (editErrors.price) setEditErrors({ ...editErrors, price: '' });
                   }}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.price ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 />
+                {editErrors.price && <p className="text-xs text-red-600 mt-1">{editErrors.price}</p>}
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                 <textarea
                   value={editForm.description}
-                  onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
+                  onChange={(event) => {
+                    setEditForm({ ...editForm, description: event.target.value });
+                    if (editErrors.description) setEditErrors({ ...editErrors, description: '' });
+                  }}
                   rows={5}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent ${
+                    editErrors.description ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 />
+                {editErrors.description && <p className="text-xs text-red-600 mt-1">{editErrors.description}</p>}
               </div>
               <div className="flex gap-4 pt-2">
                 <button

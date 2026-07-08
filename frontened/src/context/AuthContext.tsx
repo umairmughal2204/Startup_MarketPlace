@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { AUTH_TOKEN_KEY, getAuthHeaders, setStoredToken } from '../api/authHeaders';
+import { parseApiError } from '../api/apiError';
 
 export type UserRole = 'Entrepreneur' | 'Supplier' | 'Investor' | 'Admin';
 
@@ -43,6 +44,8 @@ export interface User {
   phone?: string;
   notificationPreferences?: NotificationPreferences;
   profileVisibility?: 'Public' | 'Private';
+  isMentor?: boolean;
+  seekingCoFounder?: boolean;
 }
 
 interface AuthContextType {
@@ -160,8 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Login failed');
+        throw await parseApiError(response, 'Login failed');
       }
 
       const data = await response.json();
@@ -202,8 +204,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
+        throw await parseApiError(response, 'Registration failed');
       }
 
       // Refresh users list
@@ -236,7 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        throw await parseApiError(response, 'Failed to update profile');
       }
 
       const data = await response.json();
@@ -268,8 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update password');
+        throw await parseApiError(response, 'Failed to update password');
       }
     } finally {
       setLoading(false);
@@ -303,34 +303,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const approveUser = async (userId: string, isVerified: boolean) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/users/${userId}/verify`, {
-        method: 'PUT',
-        headers: getAuthHeaders('application/json'),
-        body: JSON.stringify({ isVerified }),
-      });
+    const response = await fetch(`${API_URL}/auth/users/${userId}/verify`, {
+      method: 'PUT',
+      headers: getAuthHeaders('application/json'),
+      body: JSON.stringify({ isVerified }),
+    });
 
-      if (response.ok) {
-        await fetchUsers();
-      }
-    } catch (error) {
-      console.error('Failed to approve user:', error);
+    if (!response.ok) {
+      throw await parseApiError(response, 'Failed to update verification');
     }
+
+    await fetchUsers();
   };
 
   const toggleUserStatus = async (userId: string) => {
-    try {
-      const response = await fetch(`${API_URL}/auth/users/${userId}/status`, {
-        method: 'PUT',
-        headers: getAuthHeaders('application/json'),
-      });
+    const response = await fetch(`${API_URL}/auth/users/${userId}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders('application/json'),
+    });
 
-      if (response.ok) {
-        await fetchUsers();
-      }
-    } catch (error) {
-      console.error('Failed to update user status:', error);
+    if (!response.ok) {
+      throw await parseApiError(response, 'Failed to update user status');
     }
+
+    await fetchUsers();
   };
 
   return (

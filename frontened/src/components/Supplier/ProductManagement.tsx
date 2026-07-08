@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
 import { useAuth } from '../../context/AuthContext';
 import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput, validateMeaningfulDescription } from '../../utils/validation';
+import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
@@ -28,6 +30,7 @@ export const ProductManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
     name: '',
@@ -68,13 +71,22 @@ export const ProductManagement = () => {
   }, []);
 
   const validateProductForm = () => {
-    if (isBlank(newProduct.name)) return 'Product name is required.';
-    if (isBlank(newProduct.description)) return 'Description is required.';
-    const descriptionError = validateMeaningfulDescription(newProduct.description);
-    if (descriptionError) return descriptionError;
-    if (isBlank(newProduct.category)) return 'Category is required.';
+    const errors: Record<string, string> = {};
+    if (isBlank(newProduct.name)) {
+      errors.name = 'Product name is required.';
+    }
+    if (isBlank(newProduct.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(newProduct.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
+    if (isBlank(newProduct.category)) {
+      errors.category = 'Category is required.';
+    }
     const price = parseValidatedNumber(newProduct.price, { min: 0.01, label: 'Price' });
-    return price.error;
+    if (price.error) errors.price = price.error;
+    return errors;
   };
 
   const validateImageFile = (file: File | null) => {
@@ -85,11 +97,11 @@ export const ProductManagement = () => {
   };
 
   const handleAddProduct = async () => {
-    const validationError = validateProductForm() || validateImageFile(imageFile);
-    if (validationError) {
-      alert(validationError);
-      return;
-    }
+    const errors = validateProductForm();
+    const imageError = validateImageFile(imageFile);
+    if (imageError) toast.error(imageError);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0 || imageError) return;
 
     const confirmCreate = window.confirm('Create this product?');
     if (!confirmCreate) return;
@@ -119,14 +131,17 @@ export const ProductManagement = () => {
         features: [],
       });
       setImageFile(null);
+      setFormErrors({});
 
+      toast.success('Product added to your catalog.');
       addNotification({
         type: 'general',
         title: 'Product Added',
         message: `${product.name} has been added to your catalog`,
       });
     } catch (e) {
-      alert('Failed to create product. Please try again.');
+      if (e instanceof ApiError && e.errors) setFormErrors(e.errors);
+      toast.error(e instanceof ApiError ? e.message : 'Failed to create product. Please try again.');
       return;
     }
   };
@@ -137,9 +152,10 @@ export const ProductManagement = () => {
       await supplierApi.deleteProduct(id);
       setProducts(products.filter((p) => p.id !== id));
     } catch (e) {
-      alert('Failed to delete product. Please try again.');
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete product. Please try again.');
       return;
     }
+    toast.success('Product removed from your catalog.');
     addNotification({
       type: 'general',
       title: 'Product Deleted',
@@ -148,6 +164,7 @@ export const ProductManagement = () => {
   };
 
   const handleEditProduct = (product: Product) => {
+    setFormErrors({});
     setEditingProduct(product);
     setNewProduct({
       name: product.name,
@@ -165,11 +182,11 @@ export const ProductManagement = () => {
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
-    const validationError = validateProductForm() || validateImageFile(imageFile);
-    if (validationError) {
-      alert(validationError);
-      return;
-    }
+    const errors = validateProductForm();
+    const imageError = validateImageFile(imageFile);
+    if (imageError) toast.error(imageError);
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0 || imageError) return;
 
     const confirmUpdate = window.confirm('Update this product?');
     if (!confirmUpdate) return;
@@ -200,14 +217,17 @@ export const ProductManagement = () => {
         features: [],
       });
       setImageFile(null);
+      setFormErrors({});
 
+      toast.success('Product updated.');
       addNotification({
         type: 'general',
         title: 'Product Updated',
         message: `${updatedProduct.name} has been updated in your catalog`,
       });
     } catch (e) {
-      alert('Failed to update product. Please try again.');
+      if (e instanceof ApiError && e.errors) setFormErrors(e.errors);
+      toast.error(e instanceof ApiError ? e.message : 'Failed to update product. Please try again.');
       return;
     }
   };
@@ -221,7 +241,10 @@ export const ProductManagement = () => {
           <p className="text-gray-600">Manage your product catalog</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setFormErrors({});
+            setShowModal(true);
+          }}
           className="bg-gradient-aurora-supplier text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-cyan-500/25 transition flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -303,10 +326,16 @@ export const ProductManagement = () => {
                 <input
                   type="text"
                   value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, name: e.target.value });
+                    if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.name ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   placeholder="e.g., Cloud Hosting Package"
                 />
+                {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
               </div>
 
               <div>
@@ -316,11 +345,17 @@ export const ProductManagement = () => {
                 <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                 <textarea
                   value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, description: e.target.value });
+                    if (formErrors.description) setFormErrors({ ...formErrors, description: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.description ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   rows={4}
                   placeholder="Describe your product..."
                 />
+                {formErrors.description && <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -336,10 +371,14 @@ export const ProductManagement = () => {
                     onChange={(e) => {
                       const value = sanitizeNumberInput(e.target.value, { allowDecimal: true, maxLength: 10 });
                       setNewProduct({ ...newProduct, price: value ? Number(value) : 0 });
+                      if (formErrors.price) setFormErrors({ ...formErrors, price: '' });
                     }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                      formErrors.price ? 'border-red-400' : 'border-gray-300'
+                    }`}
                     placeholder="299"
                   />
+                  {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                 </div>
               </div>
 
@@ -349,8 +388,13 @@ export const ProductManagement = () => {
                 </label>
                 <select
                   value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, category: e.target.value });
+                    if (formErrors.category) setFormErrors({ ...formErrors, category: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.category ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 >
                   <option value="">Select category</option>
                   <option value="Software">Software</option>
@@ -359,6 +403,7 @@ export const ProductManagement = () => {
                   <option value="Marketing">Marketing</option>
                   <option value="Legal">Legal</option>
                 </select>
+                {formErrors.category && <p className="text-xs text-red-600 mt-1">{formErrors.category}</p>}
               </div>
 
               <div>
@@ -390,7 +435,7 @@ export const ProductManagement = () => {
                       const file = e.target.files?.[0] || null;
                       const validationError = validateImageFile(file);
                       if (validationError) {
-                        alert(validationError);
+                        toast.error(validationError);
                         e.target.value = '';
                         return;
                       }
@@ -419,6 +464,7 @@ export const ProductManagement = () => {
                   onClick={() => {
                     setShowModal(false);
                     setImageFile(null);
+                    setFormErrors({});
                   }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >
@@ -458,10 +504,16 @@ export const ProductManagement = () => {
                 <input
                   type="text"
                   value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, name: e.target.value });
+                    if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.name ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   placeholder="e.g., Cloud Hosting Package"
                 />
+                {formErrors.name && <p className="text-xs text-red-600 mt-1">{formErrors.name}</p>}
               </div>
 
               <div>
@@ -471,11 +523,17 @@ export const ProductManagement = () => {
                 <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
                 <textarea
                   value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, description: e.target.value });
+                    if (formErrors.description) setFormErrors({ ...formErrors, description: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.description ? 'border-red-400' : 'border-gray-300'
+                  }`}
                   rows={4}
                   placeholder="Describe your product..."
                 />
+                {formErrors.description && <p className="text-xs text-red-600 mt-1">{formErrors.description}</p>}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -491,10 +549,14 @@ export const ProductManagement = () => {
                     onChange={(e) => {
                       const value = sanitizeNumberInput(e.target.value, { allowDecimal: true, maxLength: 10 });
                       setNewProduct({ ...newProduct, price: value ? Number(value) : 0 });
+                      if (formErrors.price) setFormErrors({ ...formErrors, price: '' });
                     }}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                      formErrors.price ? 'border-red-400' : 'border-gray-300'
+                    }`}
                     placeholder="299"
                   />
+                  {formErrors.price && <p className="text-xs text-red-600 mt-1">{formErrors.price}</p>}
                 </div>
               </div>
 
@@ -504,8 +566,13 @@ export const ProductManagement = () => {
                 </label>
                 <select
                   value={newProduct.category}
-                  onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400"
+                  onChange={(e) => {
+                    setNewProduct({ ...newProduct, category: e.target.value });
+                    if (formErrors.category) setFormErrors({ ...formErrors, category: '' });
+                  }}
+                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 ${
+                    formErrors.category ? 'border-red-400' : 'border-gray-300'
+                  }`}
                 >
                   <option value="">Select category</option>
                   <option value="Software">Software</option>
@@ -514,6 +581,7 @@ export const ProductManagement = () => {
                   <option value="Marketing">Marketing</option>
                   <option value="Legal">Legal</option>
                 </select>
+                {formErrors.category && <p className="text-xs text-red-600 mt-1">{formErrors.category}</p>}
               </div>
 
               <div>
@@ -550,7 +618,7 @@ export const ProductManagement = () => {
                       const file = e.target.files?.[0] || null;
                       const validationError = validateImageFile(file);
                       if (validationError) {
-                        alert(validationError);
+                        toast.error(validationError);
                         e.target.value = '';
                         return;
                       }
@@ -579,6 +647,7 @@ export const ProductManagement = () => {
                   onClick={() => {
                     setShowEditModal(false);
                     setImageFile(null);
+                    setFormErrors({});
                   }}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >

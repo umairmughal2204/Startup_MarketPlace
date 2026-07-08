@@ -1,15 +1,23 @@
 const express = require("express");
 const User = require("../models/User");
 const { createToken, normalizeUser, requireAuth, requireRole, requireSelfOrAdmin } = require("../middleware/auth");
+const { validateBody, isEmail, isPhone, isOneOf } = require("../utils/validate");
 
 const router = express.Router();
 
-router.post("/register", async (req, res) => {
+const ROLES = ["Entrepreneur", "Supplier", "Investor", "Admin"];
+
+router.post(
+	"/register",
+	validateBody({
+		name: { required: true, minLength: 2, maxLength: 100 },
+		email: { required: true, check: isEmail, message: "Please enter a valid email address" },
+		password: { required: true, minLength: 6, message: "Password must be at least 6 characters" },
+		role: { required: true, check: isOneOf(ROLES), message: "Please select a valid role" },
+	}),
+	async (req, res) => {
 	try {
 		const { name, email, password, role, professionalDetails } = req.body || {};
-		if (!name || !email || !password || !role) {
-			return res.status(400).json({ message: "name, email, password, and role are required" });
-		}
 
 		const existing = await User.findOne({ email: String(email).toLowerCase() });
 		if (existing) {
@@ -30,14 +38,19 @@ router.post("/register", async (req, res) => {
 	} catch (error) {
 		res.status(500).json({ message: "Registration failed" });
 	}
-});
+	}
+);
 
-router.post("/login", async (req, res) => {
+router.post(
+	"/login",
+	validateBody({
+		email: { required: true, check: isEmail, message: "Please enter a valid email address" },
+		password: { required: true },
+		role: { required: true, check: isOneOf(ROLES), message: "Please select a valid role" },
+	}),
+	async (req, res) => {
 	try {
 		const { email, password, role } = req.body || {};
-		if (!email || !password || !role) {
-			return res.status(400).json({ message: "email, password, and role are required" });
-		}
 
 		const user = await User.findOne({ email: String(email).toLowerCase() });
 		if (!user) {
@@ -66,7 +79,8 @@ router.post("/login", async (req, res) => {
 	} catch (error) {
 		res.status(500).json({ message: "Login failed" });
 	}
-});
+	}
+);
 
 
 router.get("/me", requireAuth, async (req, res) => {
@@ -86,7 +100,15 @@ router.get("/users", requireRole("Admin"), async (req, res) => {
 	}
 });
 
-router.put("/users/:id/profile", requireSelfOrAdmin, async (req, res) => {
+router.put(
+	"/users/:id/profile",
+	requireSelfOrAdmin,
+	validateBody({
+		name: { minLength: 2, maxLength: 100 },
+		email: { check: isEmail, message: "Please enter a valid email address" },
+		phone: { check: isPhone, message: "Please enter a valid phone number" },
+	}),
+	async (req, res) => {
 	try {
 		const { name, email, phone, profileVisibility } = req.body || {};
 		const updates = {};
@@ -108,14 +130,19 @@ router.put("/users/:id/profile", requireSelfOrAdmin, async (req, res) => {
 	} catch (error) {
 		res.status(400).json({ message: "Failed to update profile" });
 	}
-});
+	}
+);
 
-router.put("/users/:id/password", requireSelfOrAdmin, async (req, res) => {
+router.put(
+	"/users/:id/password",
+	requireSelfOrAdmin,
+	validateBody({
+		currentPassword: { required: true },
+		newPassword: { required: true, minLength: 6, message: "New password must be at least 6 characters" },
+	}),
+	async (req, res) => {
 	try {
 		const { currentPassword, newPassword } = req.body || {};
-		if (!currentPassword || !newPassword) {
-			return res.status(400).json({ message: "currentPassword and newPassword are required" });
-		}
 
 		const user = await User.findById(req.params.id);
 		if (!user) {
@@ -134,7 +161,8 @@ router.put("/users/:id/password", requireSelfOrAdmin, async (req, res) => {
 	} catch (error) {
 		res.status(500).json({ message: "Failed to update password" });
 	}
-});
+	}
+);
 
 router.put("/users/:id/notifications", requireSelfOrAdmin, async (req, res) => {
 	try {

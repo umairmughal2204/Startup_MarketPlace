@@ -75,6 +75,23 @@ export const cofounderApi = {
     if (!res.ok) throw new Error('Failed to fetch skills');
     return res.json();
   },
+
+  async connect(coFounderId: string) {
+    const res = await fetch(`${API_BASE}/api/features/cofounders/${coFounderId}/connect`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to send connect request');
+    return res.json();
+  },
+
+  async getSentRequests(): Promise<string[]> {
+    const res = await fetch(`${API_BASE}/api/features/my-sent-cofounder-requests`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error('Failed to fetch sent requests');
+    return res.json();
+  },
 };
 
 // ========== WEBINAR API ==========
