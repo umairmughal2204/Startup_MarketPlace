@@ -138,6 +138,26 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
     setIsEditing(false);
   };
 
+  const handleDownloadDocument = async (idea: IdeaItem) => {
+    if (!idea.documentUrl) return;
+    const url = `${API_BASE}${idea.documentUrl}`;
+    try {
+      const res = await fetch(url, { method: 'HEAD' });
+      if (!res.ok) {
+        toast.error('This document is no longer available on the server.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = url;
+      if (idea.documentName) link.download = idea.documentName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      toast.error('Failed to download document. Please try again.');
+    }
+  };
+
   const startEditing = () => {
     if (!selectedIdea) return;
     setEditForm({
@@ -470,14 +490,12 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
                   <h4 className="text-lg font-semibold text-gray-900">Document</h4>
                 </div>
                 {selectedIdea.documentUrl ? (
-                  <a
-                    href={`${API_BASE}${selectedIdea.documentUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => handleDownloadDocument(selectedIdea)}
                     className="text-pink-600 hover:underline font-medium"
                   >
                     {selectedIdea.documentName || 'View Document'}
-                  </a>
+                  </button>
                 ) : (
                   <p className="text-gray-600">No document uploaded.</p>
                 )}

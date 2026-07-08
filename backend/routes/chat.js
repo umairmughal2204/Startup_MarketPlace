@@ -1,6 +1,7 @@
 const express = require("express");
 const ChatThread = require("../models/ChatThread");
 const ChatMessage = require("../models/ChatMessage");
+const User = require("../models/User");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -16,6 +17,24 @@ const normalizeUser = (user) => ({
   name: String(user.name || ""),
   role: String(user.role || ""),
 });
+
+// Every other route in this codebase normalizes _id -> id before responding
+// (toIdeaResponse, toProductResponse, etc.). chat.js previously sent raw Mongoose
+// documents straight to res.json()/socket.emit() — JSON.stringify on a Mongoose doc
+// does NOT include the `id` virtual, only `_id`, so the REST and socket payloads had
+// different shapes. That caused the frontend's socket-delivered messages to have
+// `id: undefined`, breaking client-side dedupe and producing duplicate messages.
+const toMessageResponse = (doc) => {
+  const data = doc.toObject ? doc.toObject() : doc;
+  const { _id, __v, ...rest } = data;
+  return { id: _id.toString(), ...rest };
+};
+
+const toThreadResponse = (doc) => {
+  const data = doc.toObject ? doc.toObject() : doc;
+  const { _id, __v, ...rest } = data;
+  return { id: _id.toString(), ...rest };
+};
 
 const canAccessThread = (thread, user) => {
   if (!thread || !user) return false;
@@ -33,6 +52,22 @@ const canAccessThread = (thread, user) => {
   return false;
 };
 
+// GET /api/chat/contacts - minimal list of other users any authenticated user can
+// start a direct conversation with. Deliberately narrower than /api/auth/users (which
+// returns full profiles and is Admin-only for user management) — this only exposes
+// what the chat UI needs to show a contact list.
+router.get("/contacts", async (req, res) => {
+  try {
+    const users = await User.find(
+      { _id: { $ne: req.user._id }, status: "Active" },
+      "name role"
+    ).sort({ name: 1 });
+    res.json(users.map((user) => ({ id: user._id.toString(), name: user.name, role: user.role })));
+  } catch (error) {
+    res.status(500).json({ message: "Failed to load contacts" });
+  }
+});
+
 router.get("/threads", async (req, res) => {
   try {
     const userId = String(req.user._id);
@@ -46,7 +81,7 @@ router.get("/threads", async (req, res) => {
     }
     const query = { $or: conditions };
     const threads = await ChatThread.find(query).sort({ updatedAt: -1 });
-    res.json(threads);
+    res.json(threads.map(toThreadResponse));
   } catch (error) {
     res.status(500).json({ message: "Failed to load threads" });
   }
@@ -64,7 +99,7 @@ router.post("/threads", async (req, res) => {
         return res.status(400).json({ message: "Role is required for role threads" });
       }
       const existing = await ChatThread.findOne({ type: "role", role: String(role) });
-      if (existing) return res.json(existing);
+      if (existing) return res.json(toThreadResponse(existing));
       const thread = await ChatThread.create({
         type: "role",
         role: String(role),
@@ -73,7 +108,7 @@ router.post("/threads", async (req, res) => {
         participantIds: [String(req.user._id)],
         participants: [normalizeUser(req.user)],
       });
-      return res.json(thread);
+      return res.json(toThreadResponse(thread));
     }
 
     if (type === "idea") {
@@ -81,7 +116,7 @@ router.post("/threads", async (req, res) => {
         return res.status(400).json({ message: "Idea ID is required for idea threads" });
       }
       const existing = await ChatThread.findOne({ type: "idea", ideaId: String(ideaId) });
-      if (existing) return res.json(existing);
+      if (existing) return res.json(toThreadResponse(existing));
       const thread = await ChatThread.create({
         type: "idea",
         ideaId: String(ideaId),
@@ -91,7 +126,7 @@ router.post("/threads", async (req, res) => {
         participantIds: [String(req.user._id)],
         participants: [normalizeUser(req.user)],
       });
-      return res.json(thread);
+      return res.json(toThreadResponse(thread));
     }
 
     if (type === "direct") {
@@ -106,7 +141,7 @@ router.post("/threads", async (req, res) => {
         type: "direct",
         participantIds: { $all: ids, $size: ids.length },
       });
-      if (existing) return res.json(existing);
+      if (existing) return res.json(toThreadResponse(existing));
       const thread = await ChatThread.create({
         type: "direct",
         participantIds: ids,
@@ -114,7 +149,7 @@ router.post("/threads", async (req, res) => {
         createdBy: currentUser.id,
         title: title || [currentUser.name, otherParticipants[0].name].join(" & "),
       });
-      return res.json(thread);
+      return res.json(toThreadResponse(thread));
     }
 
     return res.status(400).json({ message: "Unsupported thread type" });
@@ -137,7 +172,7 @@ router.get("/messages", async (req, res) => {
       return res.status(403).json({ message: "You do not have access to this thread" });
     }
     const messages = await ChatMessage.find({ threadId: String(threadId) }).sort({ createdAt: 1 });
-    res.json(messages);
+    res.json(messages.map(toMessageResponse));
   } catch (error) {
     res.status(500).json({ message: "Failed to load messages" });
   }
@@ -175,12 +210,29 @@ router.post("/messages", async (req, res) => {
       },
     });
 
+    const responseMessage = toMessageResponse(message);
+
     const io = req.app.get("io");
     if (io) {
-      io.to(`thread:${threadId}`).emit("message:new", message);
+      // Broadcast to the thread room (for anyone with it open right now) AND to each
+      // participant's personal room / role room, so the recipient still gets the
+      // message even if they aren't currently viewing this exact thread. Chaining
+      // .to() calls before a single .emit() lets Socket.IO dedupe automatically, so a
+      // socket that's in more than one of these rooms only receives the event once.
+      // Emitting the same normalized shape as the REST response (with a plain `id`
+      // field instead of a raw `_id`) is what makes the frontend's dedupe-by-id work.
+      let emitter = io.to(`thread:${threadId}`);
+      if (thread.type === "direct" && Array.isArray(thread.participantIds)) {
+        thread.participantIds.forEach((id) => {
+          emitter = emitter.to(`user:${id}`);
+        });
+      } else if (thread.type === "role" && thread.role) {
+        emitter = emitter.to(`role:${thread.role}`);
+      }
+      emitter.emit("message:new", responseMessage);
     }
 
-    res.json(message);
+    res.json(responseMessage);
   } catch (error) {
     res.status(500).json({ message: "Failed to send message" });
   }

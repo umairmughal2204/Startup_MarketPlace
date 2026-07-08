@@ -166,6 +166,26 @@ export const IdeaBrowser = () => {
     });
   };
 
+  const handleDownloadDocument = async (idea: Idea) => {
+    if (!idea.documentUrl) return;
+    const url = `${API_BASE}${idea.documentUrl}`;
+    try {
+      const res = await fetch(url, { method: 'HEAD' });
+      if (!res.ok) {
+        toast.error('This document is no longer available on the server.');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = url;
+      if (idea.documentName) link.download = idea.documentName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      toast.error('Failed to download document. Please try again.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Search and Filter Bar */}
@@ -442,14 +462,13 @@ export const IdeaBrowser = () => {
                     </div>
                   </div>
 
-                  <a
-                    href={`${API_BASE}${detailModal.idea.documentUrl}`}
-                    download={detailModal.idea.documentName || undefined}
+                  <button
+                    onClick={() => handleDownloadDocument(detailModal.idea!)}
                     className="w-full bg-gradient-aurora-investor text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-violet-500/25 transition flex items-center justify-center gap-2"
                   >
                     <Download className="w-5 h-5" />
                     Download Document
-                  </a>
+                  </button>
                 </div>
               )}
 

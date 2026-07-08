@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, Lock, Shield, Building2, Briefcase, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
-import { isValidEmail, isValidPhone } from '../../utils/validation';
+import { isValidPhone } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
 
 interface SettingsPageProps {
@@ -50,7 +50,6 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
     name: user?.name || userName,
     email: user?.email || '',
     phone: user?.phone || '',
-    profileVisibility: user?.profileVisibility || 'Public',
   });
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -67,7 +66,6 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
       name: user?.name || userName,
       email: user?.email || '',
       phone: user?.phone || '',
-      profileVisibility: user?.profileVisibility || 'Public',
     });
   }, [user, userName]);
 
@@ -77,11 +75,6 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
 
     const errors: Record<string, string> = {};
     if (!profileForm.name.trim()) errors.name = 'Name is required.';
-    if (!profileForm.email.trim()) {
-      errors.email = 'Email is required.';
-    } else if (!isValidEmail(profileForm.email)) {
-      errors.email = 'Please enter a valid email address.';
-    }
     if (profileForm.phone.trim() && !isValidPhone(profileForm.phone)) {
       errors.phone = 'Please enter a valid phone number.';
     }
@@ -91,9 +84,8 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
     try {
       await updateProfile({
         name: profileForm.name.trim(),
-        email: profileForm.email.trim(),
+        email: user?.email || '',
         phone: profileForm.phone.trim(),
-        profileVisibility: profileForm.profileVisibility,
       });
       setStatusMessage('Profile updated successfully.');
       toast.success('Profile updated successfully.');
@@ -325,15 +317,12 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
             <input
               type="email"
               value={profileForm.email}
-              onChange={(event) => {
-                setProfileForm({ ...profileForm, email: event.target.value });
-                if (profileFieldErrors.email) setProfileFieldErrors({ ...profileFieldErrors, email: '' });
-              }}
-              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 ${theme.input} ${
-                profileFieldErrors.email ? 'border-red-400' : 'border-gray-300'
-              }`}
+              disabled
+              readOnly
+              title="Email address cannot be changed"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed"
             />
-            {profileFieldErrors.email && <p className="text-xs text-red-600 mt-1">{profileFieldErrors.email}</p>}
+            <p className="text-xs text-gray-500 mt-1">Your email address is fixed and cannot be changed.</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
@@ -350,19 +339,6 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
               }`}
             />
             {profileFieldErrors.phone && <p className="text-xs text-red-600 mt-1">{profileFieldErrors.phone}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Profile Visibility</label>
-            <select
-              value={profileForm.profileVisibility}
-              onChange={(event) =>
-                setProfileForm({ ...profileForm, profileVisibility: event.target.value as 'Public' | 'Private' })
-              }
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
-            >
-              <option value="Public">Public</option>
-              <option value="Private">Private</option>
-            </select>
           </div>
           <button
             onClick={handleSaveProfile}
@@ -436,38 +412,6 @@ export const SettingsPage = ({ userName }: SettingsPageProps) => {
           >
             Update Password
           </button>
-        </div>
-      </div>
-
-      <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <Shield className={`w-6 h-6 ${theme.icon}`} />
-          Privacy & Security
-        </h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-gray-900">Two-Factor Authentication</div>
-              <div className="text-sm text-gray-600">Add an extra layer of security</div>
-            </div>
-            <button className={`${theme.link} hover:underline font-semibold`}>Enable</button>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-gray-900">Profile Visibility</div>
-              <div className="text-sm text-gray-600">Control who can see your profile</div>
-            </div>
-            <select
-              value={profileForm.profileVisibility}
-              onChange={(event) =>
-                setProfileForm({ ...profileForm, profileVisibility: event.target.value as 'Public' | 'Private' })
-              }
-              className={`px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 ${theme.input}`}
-            >
-              <option value="Public">Public</option>
-              <option value="Private">Private</option>
-            </select>
-          </div>
         </div>
       </div>
     </div>

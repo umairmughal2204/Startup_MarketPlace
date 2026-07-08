@@ -10,6 +10,7 @@ import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
+  ownerId?: string;
   name: string;
   supplier: string;
   price: number;
@@ -97,13 +98,17 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   };
 
   const handleMessageSupplier = () => {
-    // Open chat with the supplier
+    if (!productData.ownerId) {
+      toast.error('This supplier cannot be messaged right now.');
+      return;
+    }
+    // Open chat with the supplier's real user account, not the product itself.
     openChatWithContact({
-      id: productData.id,
+      id: productData.ownerId,
       name: productData.supplier,
       role: 'Supplier' as const,
     });
-    
+
     addNotification({
       type: 'general',
       title: 'Opening Chat',

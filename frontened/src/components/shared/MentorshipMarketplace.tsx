@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GraduationCap, Star, Clock, Search, MessageSquare, CheckCircle, Plus, X, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useChat } from '../../context/ChatContext';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, UserRole } from '../../context/AuthContext';
 import { mentorshipApi } from '../../api/featuresApi';
 import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
@@ -10,6 +10,7 @@ import { ApiError } from '../../api/apiError';
 interface Mentor {
   _id: string;
   name: string;
+  role: UserRole;
   expertise: string[];
   professionalDetails?: {
     industry?: string;
@@ -70,7 +71,7 @@ export const MentorshipMarketplace = () => {
       await mentorshipApi.bookSession(mentor._id);
       setBookedIds((prev) => new Set(prev).add(mentor._id));
       toast.success(`Session requested with ${mentor.name}.`);
-      openChatWithContact({ id: mentor._id, name: mentor.name, role: 'Entrepreneur' });
+      openChatWithContact({ id: mentor._id, name: mentor.name, role: mentor.role || 'Entrepreneur' });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to book session. Please try again.');
     }

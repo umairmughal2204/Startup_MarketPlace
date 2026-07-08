@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquare, X, Send, Minimize2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { UserRole, useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { chatApi, ChatMessage, ChatParticipant, ChatThread } from '../../api/chatApi';
@@ -20,7 +21,7 @@ interface ChatWidgetProps {
 }
 
 export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
-  const { user, users } = useAuth();
+  const { user } = useAuth();
   const { activeContact, shouldOpenChat, resetChat } = useChat();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -28,26 +29,59 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [ideaContacts, setIdeaContacts] = useState<ContactItem[]>([]);
+  const [directContacts, setDirectContacts] = useState<ContactItem[]>([]);
+  const [conversations, setConversations] = useState<ChatThread[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [unreadThreadIds, setUnreadThreadIds] = useState<Set<string>>(new Set());
   const joinedThreadId = useRef<string | null>(null);
+  const selectedThreadRef = useRef<ChatThread | null>(null);
 
   const currentUser = useMemo<ChatParticipant | null>(() => {
     if (!user) return null;
     return { id: user.id, name: user.name, role: user.role };
   }, [user]);
 
-  const directContacts = useMemo(() => {
-    if (!user) return [] as ContactItem[];
-    return users
-      .filter((candidate) => candidate.id !== user.id)
-      .map((candidate) => ({
-        id: candidate.id,
-        name: candidate.name,
-        role: candidate.role,
-        type: 'direct' as const,
-      }));
-  }, [user, users]);
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    chatApi
+      .getContacts()
+      .then((contacts) => {
+        if (!isMounted) return;
+        setDirectContacts(
+          contacts.map((contact) => ({
+            id: contact.id,
+            name: contact.name,
+            role: contact.role as UserRole,
+            type: 'direct' as const,
+          }))
+        );
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setDirectContacts([]);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  const refreshConversations = () => {
+    if (!user) return;
+    setIsLoadingConversations(true);
+    chatApi
+      .getThreads(user.id, user.role)
+      .then((threads) => setConversations(threads))
+      .catch(() => setConversations([]))
+      .finally(() => setIsLoadingConversations(false));
+  };
+
+  useEffect(() => {
+    if (isOpen) refreshConversations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user]);
 
   const roleContacts = useMemo(() => {
     const roles: UserRole[] = ['Entrepreneur', 'Supplier', 'Investor', 'Admin'];
@@ -89,11 +123,25 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   }, [user]);
 
   useEffect(() => {
+    selectedThreadRef.current = selectedThread;
+  }, [selectedThread]);
+
+  useEffect(() => {
     if (!currentUser) return;
     const socket = getChatSocket(currentUser);
     const handleNewMessage = (message: ChatMessage) => {
-      if (!selectedThread || message.threadId !== selectedThread.id) return;
-      setMessages((prev) => [...prev, message]);
+      const isForOpenThread = selectedThreadRef.current?.id === message.threadId;
+      if (isForOpenThread) {
+        setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+      }
+      if (message.sender?.id !== currentUser.id && !isForOpenThread) {
+        setUnreadThreadIds((prev) => new Set(prev).add(message.threadId));
+        toast(`New message from ${message.sender?.name || 'someone'}`, {
+          description: message.content,
+        });
+      }
+      // Keep the conversation list's last-message preview and ordering current.
+      refreshConversations();
     };
 
     socket.on('message:new', handleNewMessage);
@@ -101,7 +149,7 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
     return () => {
       socket.off('message:new', handleNewMessage);
     };
-  }, [currentUser, selectedThread]);
+  }, [currentUser]);
 
   useEffect(() => {
     if (shouldOpenChat && activeContact) {
@@ -155,6 +203,12 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   const openThread = async (thread: ChatThread) => {
     if (!currentUser) return;
     setSelectedThread(thread);
+    setUnreadThreadIds((prev) => {
+      if (!prev.has(thread.id)) return prev;
+      const next = new Set(prev);
+      next.delete(thread.id);
+      return next;
+    });
     setIsLoadingMessages(true);
     try {
       const threadMessages = await chatApi.getMessages(thread.id);
@@ -171,19 +225,27 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
     }
     socket.emit('thread:join', { threadId: thread.id });
     joinedThreadId.current = thread.id;
+    refreshConversations();
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedThread || !currentUser) return;
     const content = newMessage.trim();
     setNewMessage('');
+    setError(null);
     try {
-      await chatApi.sendMessage({
+      const sent = await chatApi.sendMessage({
         threadId: selectedThread.id,
         content,
       });
+      // Append immediately rather than waiting for the socket echo — the socket
+      // handler dedupes by id, so this is safe even if the echo also arrives.
+      setMessages((prev) => (prev.some((m) => m.id === sent.id) ? prev : [...prev, sent]));
+      refreshConversations();
     } catch (err) {
+      setNewMessage(content);
       setError('Failed to send message.');
+      toast.error('Failed to send message. Please try again.');
     }
   };
 
@@ -202,6 +264,9 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
         className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-[#0066cc] text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-[#004080] transition z-50"
       >
         <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
+        {unreadThreadIds.size > 0 && (
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white" />
+        )}
       </button>
     );
   }
@@ -216,6 +281,9 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
         <div className="flex items-center gap-2">
           <MessageSquare className="w-5 h-5" />
           <span className="font-semibold">Messages</span>
+          {unreadThreadIds.size > 0 && (
+            <span className="w-2 h-2 bg-red-400 rounded-full" title="Unread messages" />
+          )}
         </div>
         <div className="flex gap-2">
           <button
@@ -237,6 +305,40 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
         <>
           {!selectedThread ? (
             <div className="flex-1 overflow-y-auto">
+              {isLoadingConversations && (
+                <div className="px-4 pt-4 text-sm text-gray-500">Loading conversations...</div>
+              )}
+              {conversations.length > 0 && (
+                <>
+                  <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Conversations</div>
+                  {conversations.map((thread) => {
+                    const isUnread = unreadThreadIds.has(thread.id);
+                    return (
+                      <button
+                        key={thread.id}
+                        onClick={() => openThread(thread)}
+                        className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#0066cc] text-white rounded-full flex items-center justify-center flex-shrink-0">
+                            {(thread.title || 'C').charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-sm truncate">{thread.title || 'Conversation'}</div>
+                              {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {thread.lastMessage?.content || 'No messages yet'}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </>
+              )}
+
               <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Role Rooms</div>
               {roleContacts.map((contact) => (
                 <button

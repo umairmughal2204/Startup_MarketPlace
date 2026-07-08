@@ -11,6 +11,7 @@ import { ApiError } from '../../api/apiError';
 
 interface Product {
   id: string;
+  ownerId?: string;
   name: string;
   supplier: string;
   price: number;
@@ -58,6 +59,7 @@ export const MarketPlace = () => {
         if (isMounted) {
           const mapped = data.map((p: any) => ({
             id: p.id,
+            ownerId: p.ownerId,
             name: p.name,
             supplier: p.supplierName || 'Supplier',
             price: p.price,

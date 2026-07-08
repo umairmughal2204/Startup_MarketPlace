@@ -95,9 +95,6 @@ export const Sidebar = ({ role, userName, currentPage, menuItems, onNavigate, on
                 {userName}
               </div>
               <div className="text-xs text-white/80">{role}</div>
-              {role !== 'Admin' && user?.profileVisibility && (
-                <div className="text-xs text-white/70 mt-0.5">{user.profileVisibility}</div>
-              )}
             </div>
           </div>
           {user?.isVerified && role !== 'Admin' && (

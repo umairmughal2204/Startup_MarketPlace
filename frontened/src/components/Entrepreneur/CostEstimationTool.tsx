@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { DollarSign, Wand2, Loader2, TrendingDown, AlertCircle } from 'lucide-react';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -21,7 +22,7 @@ const BUSINESS_TYPES = ['SaaS / Software', 'E-commerce / Retail', 'Marketplace',
 const STAGES = ['Idea / Pre-MVP', 'MVP / Prototype', 'Early Traction', 'Growth Stage'];
 
 export const CostEstimationTool = () => {
-  const [form, setForm] = useState({ businessType: '', stage: '', teamSize: '1-3', description: '' });
+  const [form, setForm] = useState({ title: '', businessType: '', stage: '', teamSize: '1-3', description: '' });
   const [result, setResult] = useState<CostResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +30,19 @@ export const CostEstimationTool = () => {
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
+    if (isBlank(form.title)) {
+      errors.title = 'Idea title is required.';
+    } else if (form.title.trim().length < 3) {
+      errors.title = 'Title must be at least 3 characters.';
+    }
     if (!form.businessType) errors.businessType = 'Please select a business type';
     if (!form.stage) errors.stage = 'Please select your current stage';
+    if (isBlank(form.description)) {
+      errors.description = 'Description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(form.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -84,6 +96,20 @@ export const CostEstimationTool = () => {
       {/* Form */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Idea Title *</label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={(e) => {
+                setForm({ ...form, title: e.target.value });
+                if (fieldErrors.title) setFieldErrors({ ...fieldErrors, title: '' });
+              }}
+              placeholder="e.g., AI-Powered Fitness App"
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.title ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+            />
+            {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+          </div>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Business Type *</label>
@@ -130,18 +156,23 @@ export const CostEstimationTool = () => {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Brief Description (optional)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Brief Description *</label>
+            <span className="block text-xs text-gray-500 mb-2">Minimum 8 words</span>
             <textarea
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(e) => {
+                setForm({ ...form, description: e.target.value });
+                if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
+              }}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
               placeholder="Describe your business idea to get more accurate estimates..."
             />
+            {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
           </div>
           <button
             type="submit"
-            disabled={isLoading || !form.businessType || !form.stage}
+            disabled={isLoading || !form.title.trim() || !form.businessType || !form.stage || !form.description.trim()}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
           >
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Estimating...</> : <><Wand2 className="w-4 h-4" /> Generate Estimate</>}

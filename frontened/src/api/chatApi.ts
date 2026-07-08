@@ -58,6 +58,13 @@ const mapMessage = (message: any): ChatMessage => ({
 });
 
 export const chatApi = {
+  async getContacts(): Promise<ChatParticipant[]> {
+    const res = await fetch(`${API_BASE}/api/chat/contacts`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch chat contacts");
+    return (await res.json()) || [];
+  },
   async getThreads(userId: string, role: string) {
     const params = new URLSearchParams({ userId, role });
     const res = await fetch(`${API_BASE}/api/chat/threads?${params.toString()}`, {

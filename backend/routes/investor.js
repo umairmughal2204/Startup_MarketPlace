@@ -32,7 +32,11 @@ const isOwnerOrAdmin = (user, ownerId) => user && (user.role === "Admin" || Stri
 router.get("/feedback", async (req, res) => {
   try {
     const { ideaId } = req.query || {};
-    const query = ideaId ? { ideaId } : {};
+    // "My Feedback" must only ever return the current investor's own submissions;
+    // Admins can see everything. Previously this had no investor scoping at all,
+    // so every investor's "My Feedback" list showed feedback from every investor.
+    const query = req.user.role === "Admin" ? {} : { investorId: req.user._id };
+    if (ideaId) query.ideaId = ideaId;
     const feedback = await Feedback.find(query)
       .populate("ideaId", "title category")
       .sort({ createdAt: -1 });

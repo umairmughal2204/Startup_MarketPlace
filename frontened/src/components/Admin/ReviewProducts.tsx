@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, DollarSign, Edit, Save, X, XCircle } from 'lucide-react';
+import { Edit, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { supplierApi } from '../../api/supplierApi';
@@ -26,6 +26,7 @@ export const ReviewProducts = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editForm, setEditForm] = useState({
@@ -36,7 +37,6 @@ export const ReviewProducts = () => {
     status: 'Pending' as Product['status'],
   });
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
-  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
 
   const categories = ['Software', 'Hardware', 'Services', 'Marketing', 'Legal', 'Other'];
 
@@ -93,8 +93,6 @@ export const ReviewProducts = () => {
     }
   };
 
-  const handleApprove = (product: Product) => updateProductStatus(product, 'Approved');
-  const handleReject = (product: Product) => updateProductStatus(product, 'Rejected');
   const handleStatusChange = (product: Product, status: Product['status']) => {
     if (status === product.status) return;
     const confirmUpdate = window.confirm(`Update status for "${product.name}" to ${status}?`);
@@ -175,12 +173,30 @@ export const ReviewProducts = () => {
     }
   };
 
-  const pendingProducts = useMemo(
-    () => products.filter((product) => product.status !== 'Approved' && product.status !== 'Rejected'),
-    [products]
-  );
-  const reviewedProducts = useMemo(
-    () => products.filter((product) => product.status !== 'Pending'),
+  const handleDeleteProduct = async () => {
+    if (!editingProduct) return;
+    const confirmDelete = window.confirm(`Delete "${editingProduct.name}"? This action cannot be undone.`);
+    if (!confirmDelete) return;
+    setIsDeleting(true);
+    try {
+      await supplierApi.deleteProduct(editingProduct.id);
+      setProducts((prev) => prev.filter((item) => item.id !== editingProduct.id));
+      toast.success(`"${editingProduct.name}" has been deleted.`);
+      addNotification({
+        type: 'general',
+        title: 'Product Deleted',
+        message: `"${editingProduct.name}" has been removed.`,
+      });
+      closeEdit();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete product.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const pendingCount = useMemo(
+    () => products.filter((product) => product.status !== 'Approved' && product.status !== 'Rejected').length,
     [products]
   );
 
@@ -191,7 +207,7 @@ export const ReviewProducts = () => {
       <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-yellow-600 mb-1">
-            {pendingProducts.length}
+            {pendingCount}
           </div>
           <div className="text-sm text-gray-600">Pending Approval</div>
         </div>
@@ -209,100 +225,25 @@ export const ReviewProducts = () => {
         </div>
       </div>
 
-      {/* Pending Products */}
+      {/* All Products */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Pending Products</h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          {isLoading && (
-            <div className="col-span-2 bg-white rounded-lg shadow p-12 text-center text-gray-500">
-              Loading products...
-            </div>
-          )}
-          {!isLoading && error && (
-            <div className="col-span-2 bg-white rounded-lg shadow p-12 text-center text-red-600">
-              {error}
-            </div>
-          )}
-          {!isLoading && !error && pendingProducts.length === 0 ? (
-            <div className="col-span-2 bg-white rounded-lg shadow p-12 text-center">
-              <p className="text-gray-500">No pending products to review</p>
-            </div>
-          ) : (
-            !isLoading && !error && pendingProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition">
-                <img
-                  src={product.imageUrl ? `${API_BASE}${product.imageUrl}` : (product.image || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400')}
-                  alt={product.name}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-xl mb-2">{product.name}</h3>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-blue-100 text-[#0066cc] text-xs px-2 py-1 rounded">
-                          {product.category}
-                        </span>
-                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                          {product.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Supplier: <span className="font-semibold text-gray-900">{product.supplierName || 'Supplier'}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-700 mb-4">{product.description}</p>
-
-                  <div className="grid grid-cols-1 gap-4 mb-4 bg-gray-50 rounded-lg p-3">
-                    <div>
-                      <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-                        <DollarSign className="w-3 h-3" />
-                        <span>Price</span>
-                      </div>
-                      <div className="text-xl font-bold text-[#0066cc]">${product.price}</div>
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-gray-500 mb-4">
-                    Submitted: {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'N/A'}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => openEdit(product)}
-                      className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-200 transition flex items-center justify-center gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleApprove(product)}
-                      className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleReject(product)}
-                      className="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 transition flex items-center justify-center gap-2"
-                    >
-                      <XCircle className="w-4 h-4" />
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Reviewed Products */}
-      {!isLoading && !error && reviewedProducts.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Reviewed Products</h2>
+        <h2 className="text-2xl font-bold mb-4">All Products</h2>
+        {isLoading && (
+          <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+            Loading products...
+          </div>
+        )}
+        {!isLoading && error && (
+          <div className="bg-white rounded-lg shadow p-12 text-center text-red-600">
+            {error}
+          </div>
+        )}
+        {!isLoading && !error && products.length === 0 && (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-500">No products yet</p>
+          </div>
+        )}
+        {!isLoading && !error && products.length > 0 && (
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50">
@@ -313,10 +254,11 @@ export const ReviewProducts = () => {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {reviewedProducts.map((product) => (
+                {products.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-gray-900">{product.name}</div>
@@ -344,18 +286,27 @@ export const ReviewProducts = () => {
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => openEdit(product)}
+                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition flex items-center gap-1.5"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        Edit
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       </div>
       {showEditModal && editingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
               <h2 className="text-2xl font-bold">Edit Product</h2>
               <button onClick={closeEdit} className="p-2 hover:bg-gray-100 rounded-lg">
                 <X className="w-6 h-6" />
@@ -446,6 +397,14 @@ export const ReviewProducts = () => {
               </div>
               <div className="flex gap-4 pt-2">
                 <button
+                  onClick={handleDeleteProduct}
+                  disabled={isDeleting || isSaving}
+                  className="px-6 py-3 border border-red-300 text-red-600 rounded-lg font-semibold hover:bg-red-50 transition flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+                <button
                   onClick={closeEdit}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
                 >
@@ -453,7 +412,7 @@ export const ReviewProducts = () => {
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  disabled={isSaving}
+                  disabled={isSaving || isDeleting}
                   className="flex-1 bg-[#0066cc] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#004080] transition flex items-center justify-center gap-2 disabled:opacity-70"
                 >
                   <Save className="w-5 h-5" />

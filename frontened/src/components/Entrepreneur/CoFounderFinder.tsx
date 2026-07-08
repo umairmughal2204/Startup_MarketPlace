@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Users, Search, MessageSquare, Star, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useChat } from '../../context/ChatContext';
+import { useAuth, UserRole } from '../../context/AuthContext';
 import { cofounderApi } from '../../api/featuresApi';
 import { isBlank } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
@@ -9,6 +10,7 @@ import { ApiError } from '../../api/apiError';
 interface CoFounder {
   _id: string;
   name: string;
+  role: UserRole;
   coFounderBio: string;
   coFounderSkills: string[];
   equityExpectation: string;
@@ -30,6 +32,7 @@ export const CoFounderFinder = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [allSkills, setAllSkills] = useState<string[]>([]);
   const { openChatWithContact } = useChat();
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     coFounderBio: '',
@@ -48,8 +51,10 @@ export const CoFounderFinder = () => {
         commitment: filterCommitment,
       });
       setCoFounders(data);
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch co-founders:', err);
       setCoFounders([]);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to load co-founders.');
     } finally {
       setIsLoading(false);
     }
@@ -59,7 +64,8 @@ export const CoFounderFinder = () => {
     try {
       const skills = await cofounderApi.getCoFounderSkills();
       setAllSkills(skills);
-    } catch {
+    } catch (err) {
+      console.error('Failed to fetch co-founder skills:', err);
       setAllSkills([]);
     }
   };
@@ -68,8 +74,9 @@ export const CoFounderFinder = () => {
     try {
       const sent = await cofounderApi.getSentRequests();
       setRequestedIds(new Set(sent));
-    } catch {
+    } catch (err) {
       // Non-critical: Connect buttons just won't show "Request Sent" until reload.
+      console.error('Failed to fetch sent co-founder requests:', err);
     }
   };
 
@@ -83,6 +90,7 @@ export const CoFounderFinder = () => {
   }, []);
 
   const filtered = coFounders.filter((p) => {
+    if (user && p._id === (user._id || user.id)) return false;
     const q = search.toLowerCase();
     const matchSearch = !q || p.name.toLowerCase().includes(q) || p.coFounderBio?.toLowerCase().includes(q) || p.coFounderSkills?.some((s) => s.toLowerCase().includes(q));
     return matchSearch;
@@ -92,9 +100,11 @@ export const CoFounderFinder = () => {
     try {
       await cofounderApi.connect(profile._id);
       setRequestedIds((prev) => new Set(prev).add(profile._id));
-      openChatWithContact({ id: profile._id, name: profile.name, role: 'Entrepreneur' });
-    } catch {
-      toast.error('Failed to send connect request. Please try again.');
+      toast.success(`Connect request sent to ${profile.name}.`);
+      openChatWithContact({ id: profile._id, name: profile.name, role: profile.role || 'Entrepreneur' });
+    } catch (err) {
+      console.error('Failed to send connect request:', err);
+      toast.error(err instanceof ApiError ? err.message : 'Failed to send connect request. Please try again.');
     }
   };
 

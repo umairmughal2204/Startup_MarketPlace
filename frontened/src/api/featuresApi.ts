@@ -1,5 +1,6 @@
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
 import { getAuthHeaders } from './authHeaders';
+import { parseApiError } from './apiError';
 
 const getHeaders = () => getAuthHeaders('application/json');
 
@@ -9,7 +10,7 @@ export const mentorshipApi = {
     const res = await fetch(`${API_BASE}/api/features/mentors`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch mentors');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch mentors');
     return res.json();
   },
 
@@ -24,7 +25,7 @@ export const mentorshipApi = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to become mentor');
+    if (!res.ok) throw await parseApiError(res, 'Failed to become mentor');
     return res.json();
   },
 
@@ -33,7 +34,7 @@ export const mentorshipApi = {
       method: 'POST',
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to book session');
+    if (!res.ok) throw await parseApiError(res, 'Failed to book session');
     return res.json();
   },
 };
@@ -45,11 +46,11 @@ export const cofounderApi = {
     if (filters?.skills) params.append('skills', filters.skills);
     if (filters?.industry) params.append('industry', filters.industry);
     if (filters?.commitment) params.append('commitment', filters.commitment);
-    
+
     const res = await fetch(`${API_BASE}/api/features/cofounders?${params}`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch co-founders');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch co-founders');
     return res.json();
   },
 
@@ -64,7 +65,7 @@ export const cofounderApi = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to become co-founder seeker');
+    if (!res.ok) throw await parseApiError(res, 'Failed to become co-founder seeker');
     return res.json();
   },
 
@@ -72,7 +73,7 @@ export const cofounderApi = {
     const res = await fetch(`${API_BASE}/api/features/cofounder-skills`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch skills');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch skills');
     return res.json();
   },
 
@@ -81,7 +82,7 @@ export const cofounderApi = {
       method: 'POST',
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to send connect request');
+    if (!res.ok) throw await parseApiError(res, 'Failed to send connect request');
     return res.json();
   },
 
@@ -89,7 +90,7 @@ export const cofounderApi = {
     const res = await fetch(`${API_BASE}/api/features/my-sent-cofounder-requests`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch sent requests');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch sent requests');
     return res.json();
   },
 };
@@ -101,11 +102,11 @@ export const webinarApi = {
     if (filters?.category) params.append('category', filters.category);
     if (filters?.level) params.append('level', filters.level);
     if (filters?.status) params.append('status', filters.status);
-    
+
     const res = await fetch(`${API_BASE}/api/features/webinars?${params}`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch webinars');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch webinars');
     return res.json();
   },
 
@@ -113,7 +114,7 @@ export const webinarApi = {
     const res = await fetch(`${API_BASE}/api/features/webinars/${id}`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch webinar');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch webinar');
     return res.json();
   },
 
@@ -134,7 +135,7 @@ export const webinarApi = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create webinar');
+    if (!res.ok) throw await parseApiError(res, 'Failed to create webinar');
     return res.json();
   },
 
@@ -143,7 +144,7 @@ export const webinarApi = {
       method: 'POST',
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to enroll');
+    if (!res.ok) throw await parseApiError(res, 'Failed to enroll');
     return res.json();
   },
 
@@ -153,7 +154,7 @@ export const webinarApi = {
       headers: getHeaders(),
       body: JSON.stringify({ rating }),
     });
-    if (!res.ok) throw new Error('Failed to rate webinar');
+    if (!res.ok) throw await parseApiError(res, 'Failed to rate webinar');
     return res.json();
   },
 
@@ -161,7 +162,7 @@ export const webinarApi = {
     const res = await fetch(`${API_BASE}/api/features/my-enrolled-webinars`, {
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch enrolled webinars');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch enrolled webinars');
     return res.json();
   },
 };
@@ -172,11 +173,11 @@ export const resourceLibraryApi = {
     const params = new URLSearchParams();
     if (filters?.type) params.append('type', filters.type);
     if (filters?.category) params.append('category', filters.category);
-    
+
     const res = await fetch(`${API_BASE}/api/features/resources?${params}`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch resources');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch resources');
     return res.json();
   },
 
@@ -184,7 +185,7 @@ export const resourceLibraryApi = {
     const res = await fetch(`${API_BASE}/api/features/resources/${id}`, {
       headers: getAuthHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch resource');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch resource');
     return res.json();
   },
 
@@ -205,7 +206,7 @@ export const resourceLibraryApi = {
       headers: getHeaders(),
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('Failed to create resource');
+    if (!res.ok) throw await parseApiError(res, 'Failed to create resource');
     return res.json();
   },
 
@@ -214,7 +215,7 @@ export const resourceLibraryApi = {
       method: 'POST',
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to track download');
+    if (!res.ok) throw await parseApiError(res, 'Failed to track download');
     return res.json();
   },
 
@@ -223,7 +224,7 @@ export const resourceLibraryApi = {
       method: 'POST',
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to save resource');
+    if (!res.ok) throw await parseApiError(res, 'Failed to save resource');
     return res.json();
   },
 
@@ -231,7 +232,7 @@ export const resourceLibraryApi = {
     const res = await fetch(`${API_BASE}/api/features/my-saved-resources`, {
       headers: getHeaders(),
     });
-    if (!res.ok) throw new Error('Failed to fetch saved resources');
+    if (!res.ok) throw await parseApiError(res, 'Failed to fetch saved resources');
     return res.json();
   },
 };

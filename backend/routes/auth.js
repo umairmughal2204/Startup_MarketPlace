@@ -105,15 +105,15 @@ router.put(
 	requireSelfOrAdmin,
 	validateBody({
 		name: { minLength: 2, maxLength: 100 },
-		email: { check: isEmail, message: "Please enter a valid email address" },
 		phone: { check: isPhone, message: "Please enter a valid phone number" },
 	}),
 	async (req, res) => {
 	try {
-		const { name, email, phone, profileVisibility } = req.body || {};
+		// Email is fixed at registration and can never be changed from this endpoint,
+		// even if a client sends it — silently ignored rather than validated/applied.
+		const { name, phone, profileVisibility } = req.body || {};
 		const updates = {};
 		if (name !== undefined) updates.name = name;
-		if (email !== undefined) updates.email = email;
 		if (phone !== undefined) updates.phone = phone;
 		if (profileVisibility !== undefined) updates.profileVisibility = profileVisibility;
 
