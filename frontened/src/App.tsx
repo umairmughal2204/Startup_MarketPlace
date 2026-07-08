@@ -4,6 +4,7 @@ import { Toaster } from './components/ui/sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ChatProvider } from './context/ChatContext';
+import { ConfirmProvider } from './context/ConfirmContext';
 import { LandingPage } from './components/LandingPage';
 import { AuthPage } from './components/Auth/AuthPage';
 import { AdminLoginPage } from './components/Auth/AdminLoginPage';
@@ -123,8 +124,10 @@ export default function App() {
     <AuthProvider>
       <NotificationProvider>
         <ChatProvider>
-          <Toaster richColors closeButton position="top-right" />
-          <AppContent />
+          <ConfirmProvider>
+            <Toaster richColors closeButton position="top-right" />
+            <AppContent />
+          </ConfirmProvider>
         </ChatProvider>
       </NotificationProvider>
     </AuthProvider>

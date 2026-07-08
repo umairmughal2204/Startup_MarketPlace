@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { supplierApi } from '../../api/supplierApi';
 import { useAuth } from '../../context/AuthContext';
 import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput, validateMeaningfulDescription } from '../../utils/validation';
@@ -21,6 +22,7 @@ interface Product {
 
 export const ProductManagement = () => {
   const { addNotification } = useNotifications();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
   const [showModal, setShowModal] = useState(false);
@@ -103,7 +105,10 @@ export const ProductManagement = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0 || imageError) return;
 
-    const confirmCreate = window.confirm('Create this product?');
+    const confirmCreate = await confirm({
+      title: 'Create product',
+      description: `Add "${newProduct.name}" to your catalog?`,
+    });
     if (!confirmCreate) return;
 
     try {
@@ -147,7 +152,13 @@ export const ProductManagement = () => {
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    const confirmDelete = await confirm({
+      title: 'Delete product',
+      description: 'Are you sure you want to delete this product? This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!confirmDelete) return;
     try {
       await supplierApi.deleteProduct(id);
       setProducts(products.filter((p) => p.id !== id));
@@ -188,7 +199,10 @@ export const ProductManagement = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0 || imageError) return;
 
-    const confirmUpdate = window.confirm('Update this product?');
+    const confirmUpdate = await confirm({
+      title: 'Update product',
+      description: `Save changes to "${editingProduct.name}"?`,
+    });
     if (!confirmUpdate) return;
 
     try {

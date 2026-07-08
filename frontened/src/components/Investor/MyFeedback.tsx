@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Pencil, Save, Star, Trash2, User, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { investorApi } from '../../api/investorApi';
+import { useConfirm } from '../../context/ConfirmContext';
 import { ApiError } from '../../api/apiError';
 
 const MAX_COMMENT_LENGTH = 2000;
@@ -18,6 +19,7 @@ interface Feedback {
 }
 
 export const MyFeedback = () => {
+  const confirm = useConfirm();
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +99,12 @@ export const MyFeedback = () => {
   };
 
   const deleteFeedback = async (feedbackId: string) => {
-    const confirmDelete = window.confirm('Delete this feedback?');
+    const confirmDelete = await confirm({
+      title: 'Delete feedback',
+      description: 'Delete this feedback? This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
     if (!confirmDelete) return;
     setIsSaving(true);
     try {

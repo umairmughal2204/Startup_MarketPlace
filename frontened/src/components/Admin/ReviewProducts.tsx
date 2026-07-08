@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Edit, Save, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { supplierApi } from '../../api/supplierApi';
 import { isBlank, parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput, validateMeaningfulDescription } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
@@ -22,6 +23,7 @@ interface Product {
 
 export const ReviewProducts = () => {
   const { addNotification } = useNotifications();
+  const confirm = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,9 +95,12 @@ export const ReviewProducts = () => {
     }
   };
 
-  const handleStatusChange = (product: Product, status: Product['status']) => {
+  const handleStatusChange = async (product: Product, status: Product['status']) => {
     if (status === product.status) return;
-    const confirmUpdate = window.confirm(`Update status for "${product.name}" to ${status}?`);
+    const confirmUpdate = await confirm({
+      title: 'Update product status',
+      description: `Update status for "${product.name}" to ${status}?`,
+    });
     if (!confirmUpdate) return;
     updateProductStatus(product, status);
   };
@@ -144,7 +149,10 @@ export const ReviewProducts = () => {
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const confirmUpdate = window.confirm('Update this product?');
+    const confirmUpdate = await confirm({
+      title: 'Update product',
+      description: `Save changes to "${editForm.name.trim() || editingProduct.name}"?`,
+    });
     if (!confirmUpdate) return;
     setIsSaving(true);
     try {
@@ -175,7 +183,12 @@ export const ReviewProducts = () => {
 
   const handleDeleteProduct = async () => {
     if (!editingProduct) return;
-    const confirmDelete = window.confirm(`Delete "${editingProduct.name}"? This action cannot be undone.`);
+    const confirmDelete = await confirm({
+      title: 'Delete product',
+      description: `Delete "${editingProduct.name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
     if (!confirmDelete) return;
     setIsDeleting(true);
     try {

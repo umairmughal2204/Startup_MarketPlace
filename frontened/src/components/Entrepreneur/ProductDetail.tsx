@@ -3,6 +3,7 @@ import { ArrowLeft, ShoppingCart, Package, Download, Shield, X, MessageCircle, C
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
 import { useChat } from '../../context/ChatContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { useAuth } from '../../context/AuthContext';
 import { parseValidatedNumber, preventInvalidNumberKey, sanitizeNumberInput } from '../../utils/validation';
@@ -35,6 +36,7 @@ interface PaymentModal {
 export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
   const { addNotification } = useNotifications();
   const { openChatWithContact } = useChat();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const [paymentModal, setPaymentModal] = useState<PaymentModal>({ isOpen: false });
   const [quantity, setQuantity] = useState(1);
@@ -71,7 +73,10 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
     setQuantityError(quantityCheck.error);
     if (quantityCheck.error) return;
 
-    const confirmOrder = window.confirm('Place this order?');
+    const confirmOrder = await confirm({
+      title: 'Place order',
+      description: `Place an order for ${quantityCheck.value || 1} × ${productData.name}?`,
+    });
     if (!confirmOrder) return;
 
     try {
@@ -103,10 +108,13 @@ export const ProductDetail = ({ product, onBack }: ProductDetailProps) => {
       return;
     }
     // Open chat with the supplier's real user account, not the product itself.
+    // Tag the thread with this product so both sides see what it's about.
     openChatWithContact({
       id: productData.ownerId,
       name: productData.supplier,
       role: 'Supplier' as const,
+      productId: productData.id,
+      productTitle: productData.name,
     });
 
     addNotification({

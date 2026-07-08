@@ -5,6 +5,8 @@ interface ChatContact {
   id: string;
   name: string;
   role: UserRole;
+  productId?: string;
+  productTitle?: string;
 }
 
 interface ChatContextType {

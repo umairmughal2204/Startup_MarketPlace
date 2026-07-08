@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle, Edit, Save, X, XCircle, Target, User, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
@@ -19,6 +20,7 @@ interface Idea {
 
 export const ReviewIdeas = () => {
   const { addNotification } = useNotifications();
+  const confirm = useConfirm();
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,9 +93,12 @@ export const ReviewIdeas = () => {
 
   const handleApprove = (idea: Idea) => updateIdeaStatus(idea, 'Approved');
   const handleReject = (idea: Idea) => updateIdeaStatus(idea, 'Rejected');
-  const handleStatusChange = (idea: Idea, status: Idea['status']) => {
+  const handleStatusChange = async (idea: Idea, status: Idea['status']) => {
     if (status === idea.status) return;
-    const confirmUpdate = window.confirm(`Update status for "${idea.title}" to ${status}?`);
+    const confirmUpdate = await confirm({
+      title: 'Update idea status',
+      description: `Update status for "${idea.title}" to ${status}?`,
+    });
     if (!confirmUpdate) return;
     updateIdeaStatus(idea, status);
   };
@@ -141,7 +146,10 @@ export const ReviewIdeas = () => {
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const confirmUpdate = window.confirm('Update this idea?');
+    const confirmUpdate = await confirm({
+      title: 'Update idea',
+      description: `Save changes to "${editForm.title.trim() || editingIdea.title}"?`,
+    });
     if (!confirmUpdate) return;
     setIsSaving(true);
     try {

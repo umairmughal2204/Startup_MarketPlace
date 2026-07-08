@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle, Lightbulb, TrendingUp, Target, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 import { ApiError } from '../../api/apiError';
@@ -23,6 +24,7 @@ interface AIFeedback {
 
 export const SubmitIdea = () => {
   const { addNotification } = useNotifications();
+  const confirm = useConfirm();
   const [formData, setFormData] = useState<IdeaSubmission>({
     title: '',
     category: '',
@@ -81,7 +83,10 @@ export const SubmitIdea = () => {
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const confirmCreate = window.confirm('Submit this idea?');
+    const confirmCreate = await confirm({
+      title: 'Submit idea',
+      description: 'Submit this idea for review?',
+    });
     if (!confirmCreate) return;
     setIsSubmitting(true);
     try {

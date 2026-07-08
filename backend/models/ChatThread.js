@@ -32,6 +32,8 @@ const chatThreadSchema = new mongoose.Schema(
     role: { type: String, default: "" },
     ideaId: { type: String, default: "" },
     ideaTitle: { type: String, default: "" },
+    productId: { type: String, default: "" },
+    productTitle: { type: String, default: "" },
     participantIds: { type: [String], default: [] },
     participants: { type: [participantSchema], default: [] },
     lastMessage: { type: lastMessageSchema, default: () => ({}) },

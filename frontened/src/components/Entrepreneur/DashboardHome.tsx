@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Lightbulb, ShoppingCart, MessageSquare, TrendingUp, X, Target, CheckCircle, AlertCircle, FileText, Edit3, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
+import { useConfirm } from '../../context/ConfirmContext';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { ApiError } from '../../api/apiError';
 
@@ -33,6 +34,7 @@ interface DashboardHomeProps {
 }
 
 export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
+  const confirm = useConfirm();
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -192,7 +194,10 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
     setEditErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    const confirmUpdate = window.confirm("Update this idea with the new changes?");
+    const confirmUpdate = await confirm({
+      title: 'Update idea',
+      description: 'Update this idea with the new changes?',
+    });
     if (!confirmUpdate) return;
     setIsSaving(true);
     try {
@@ -220,7 +225,12 @@ export const DashboardHome = ({ onNavigate }: DashboardHomeProps) => {
 
   const handleDelete = async () => {
     if (!selectedIdea) return;
-    const confirmDelete = window.confirm("Delete this idea? This action cannot be undone.");
+    const confirmDelete = await confirm({
+      title: 'Delete idea',
+      description: 'Delete this idea? This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
     if (!confirmDelete) return;
     setIsDeleting(true);
     try {

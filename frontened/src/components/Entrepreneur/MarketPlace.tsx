@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Filter, ShoppingCart, X, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNotifications } from '../../context/NotificationContext';
+import { useConfirm } from '../../context/ConfirmContext';
 import { ProductDetail } from './ProductDetail';
 import { entrepreneurApi } from '../../api/entrepreneurApi';
 import { useAuth } from '../../context/AuthContext';
@@ -31,6 +32,7 @@ interface PaymentModal {
 
 export const MarketPlace = () => {
   const { addNotification } = useNotifications();
+  const confirm = useConfirm();
   const { user } = useAuth();
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
   const [searchTerm, setSearchTerm] = useState('');
@@ -119,7 +121,10 @@ export const MarketPlace = () => {
     setQuantityError(quantityCheck.error);
     if (quantityCheck.error) return;
 
-    const confirmOrder = window.confirm('Place this order?');
+    const confirmOrder = await confirm({
+      title: 'Place order',
+      description: `Place an order for ${quantityCheck.value || 1} × ${paymentModal.product.name}?`,
+    });
     if (!confirmOrder) return;
 
     try {

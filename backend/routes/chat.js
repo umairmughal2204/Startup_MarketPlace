@@ -52,14 +52,49 @@ const canAccessThread = (thread, user) => {
   return false;
 };
 
-// GET /api/chat/contacts - minimal list of other users any authenticated user can
-// start a direct conversation with. Deliberately narrower than /api/auth/users (which
-// returns full profiles and is Admin-only for user management) — this only exposes
-// what the chat UI needs to show a contact list.
+// GET /api/chat/contacts - minimal list of other users the current user can start a
+// direct conversation with. Deliberately narrower than /api/auth/users (which returns
+// full profiles and is Admin-only for user management) — this only exposes what the
+// chat UI needs to show a contact list.
 router.get("/contacts", async (req, res) => {
   try {
+    // Admin needs full reach for support/oversight, so it keeps seeing everyone.
+    // Everyone else previously saw the entire user directory here too, which meant any
+    // user could cold-DM any other user in the system with zero relationship between
+    // them. Non-admins now only see: Admin (always reachable for support) + anyone they
+    // already have an existing direct thread with (created the moment they used a
+    // contextual entry point like "Message Supplier", Co-Founder Connect, or Book
+    // Session — those flows are unaffected since they create the thread directly and
+    // never go through this list).
+    if (req.user.role === "Admin") {
+      const users = await User.find(
+        { _id: { $ne: req.user._id }, status: "Active" },
+        "name role"
+      ).sort({ name: 1 });
+      return res.json(users.map((user) => ({ id: user._id.toString(), name: user.name, role: user.role })));
+    }
+
+    const requesterId = String(req.user._id);
+    const existingThreads = await ChatThread.find(
+      { type: "direct", participantIds: requesterId },
+      "participantIds"
+    );
+    const knownIds = new Set();
+    existingThreads.forEach((thread) => {
+      (thread.participantIds || []).forEach((id) => {
+        if (id !== requesterId) knownIds.add(id);
+      });
+    });
+
+    const admins = await User.find({ role: "Admin", status: "Active" }, "_id");
+    admins.forEach((admin) => knownIds.add(admin._id.toString()));
+
+    if (knownIds.size === 0) {
+      return res.json([]);
+    }
+
     const users = await User.find(
-      { _id: { $ne: req.user._id }, status: "Active" },
+      { _id: { $in: Array.from(knownIds) }, status: "Active" },
       "name role"
     ).sort({ name: 1 });
     res.json(users.map((user) => ({ id: user._id.toString(), name: user.name, role: user.role })));
@@ -88,7 +123,7 @@ router.get("/threads", async (req, res) => {
 });
 
 router.post("/threads", async (req, res) => {
-  const { type, role, ideaId, ideaTitle, participants, title } = req.body || {};
+  const { type, role, ideaId, ideaTitle, productId, productTitle, participants, title } = req.body || {};
   try {
     if (!type) {
       return res.status(400).json({ message: "Thread type is required" });
@@ -97,6 +132,13 @@ router.post("/threads", async (req, res) => {
     if (type === "role") {
       if (!role) {
         return res.status(400).json({ message: "Role is required for role threads" });
+      }
+      // A role room is only meant for people who share that role (Admin can see/join
+      // any room for oversight). Without this check, any authenticated user could open
+      // (and the UI would show a button for) every other role's room, even though they
+      // could never actually send/read messages there once canAccessThread kicked in.
+      if (String(role) !== req.user.role && req.user.role !== "Admin") {
+        return res.status(403).json({ message: "You do not have access to this role room" });
       }
       const existing = await ChatThread.findOne({ type: "role", role: String(role) });
       if (existing) return res.json(toThreadResponse(existing));
@@ -141,13 +183,25 @@ router.post("/threads", async (req, res) => {
         type: "direct",
         participantIds: { $all: ids, $size: ids.length },
       });
-      if (existing) return res.json(toThreadResponse(existing));
+      if (existing) {
+        // Tag the thread with whichever product prompted this conversation, so the
+        // header can show "regarding <product>" even when reopening a past thread
+        // (e.g. the same entrepreneur/supplier pair discussing a different product).
+        if (productId && existing.productId !== String(productId)) {
+          existing.productId = String(productId);
+          existing.productTitle = productTitle || existing.productTitle;
+          await existing.save();
+        }
+        return res.json(toThreadResponse(existing));
+      }
       const thread = await ChatThread.create({
         type: "direct",
         participantIds: ids,
         participants: [currentUser, otherParticipants[0]],
         createdBy: currentUser.id,
         title: title || [currentUser.name, otherParticipants[0].name].join(" & "),
+        productId: productId ? String(productId) : "",
+        productTitle: productTitle || "",
       });
       return res.json(toThreadResponse(thread));
     }

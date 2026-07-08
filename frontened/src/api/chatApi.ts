@@ -16,6 +16,8 @@ export interface ChatThread {
   role?: string;
   ideaId?: string;
   ideaTitle?: string;
+  productId?: string;
+  productTitle?: string;
   participantIds?: string[];
   participants?: ChatParticipant[];
   lastMessage?: {
@@ -43,6 +45,8 @@ const mapThread = (thread: any): ChatThread => ({
   role: thread.role,
   ideaId: thread.ideaId,
   ideaTitle: thread.ideaTitle,
+  productId: thread.productId,
+  productTitle: thread.productTitle,
   participantIds: thread.participantIds,
   participants: thread.participants,
   lastMessage: thread.lastMessage,
@@ -79,6 +83,8 @@ export const chatApi = {
     role?: string;
     ideaId?: string;
     ideaTitle?: string;
+    productId?: string;
+    productTitle?: string;
     title?: string;
     participants?: ChatParticipant[];
   }) {

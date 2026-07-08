@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageSquare, X, Send, Minimize2 } from 'lucide-react';
+import { MessageSquare, X, Send, Minimize2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRole, useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
@@ -20,6 +20,47 @@ interface ChatWidgetProps {
   currentUserRole: UserRole;
 }
 
+// Consistent per-role color coding used across avatars, badges and message labels so
+// it's immediately visually clear who a message/contact/thread belongs to (Entrepreneur
+// vs Supplier vs Investor vs Admin) without having to read the role text every time.
+const ROLE_THEME: Record<string, { avatar: string; badge: string }> = {
+  Entrepreneur: { avatar: 'bg-blue-600', badge: 'bg-blue-100 text-blue-700' },
+  Supplier: { avatar: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700' },
+  Investor: { avatar: 'bg-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
+  Admin: { avatar: 'bg-purple-600', badge: 'bg-purple-100 text-purple-700' },
+};
+const getRoleTheme = (role?: string) =>
+  ROLE_THEME[role || ''] || { avatar: 'bg-gray-500', badge: 'bg-gray-100 text-gray-700' };
+
+// Direct threads are stored with a combined title ("Alice & Bob"), which doesn't tell
+// either viewer "who is this conversation with" at a glance. This derives what should
+// actually be shown to the current viewer for any thread type.
+const getThreadDisplay = (thread: ChatThread, selfId?: string) => {
+  if (thread.type === 'direct') {
+    const other = thread.participants?.find((p) => p.id !== selfId);
+    return {
+      name: other?.name || thread.title || 'Conversation',
+      role: other?.role,
+      kind: 'Direct Message',
+      description: 'Private conversation, only you two can see it',
+    };
+  }
+  if (thread.type === 'role') {
+    return {
+      name: thread.title || `${thread.role} Room`,
+      role: thread.role,
+      kind: 'Role Room',
+      description: `Shared room — visible to everyone with the ${thread.role} role`,
+    };
+  }
+  return {
+    name: thread.ideaTitle || thread.title || 'Idea Discussion',
+    role: undefined,
+    kind: 'Idea Discussion',
+    description: 'Discussion thread linked to this idea submission',
+  };
+};
+
 export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   const { user } = useAuth();
   const { activeContact, shouldOpenChat, resetChat } = useChat();
@@ -35,8 +76,11 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [unreadThreadIds, setUnreadThreadIds] = useState<Set<string>>(new Set());
+  const [isSending, setIsSending] = useState(false);
   const joinedThreadId = useRef<string | null>(null);
   const selectedThreadRef = useRef<ChatThread | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   const currentUser = useMemo<ChatParticipant | null>(() => {
     if (!user) return null;
@@ -84,14 +128,18 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   }, [isOpen, user]);
 
   const roleContacts = useMemo(() => {
-    const roles: UserRole[] = ['Entrepreneur', 'Supplier', 'Investor', 'Admin'];
-    return roles.map((role) => ({
+    const allRoles: UserRole[] = ['Entrepreneur', 'Supplier', 'Investor', 'Admin'];
+    // A role room only makes sense for people who share that role — a Supplier can never
+    // actually read or post in the Admin Room (the backend rejects it), so showing that
+    // button to them was just a dead end. Admin can still see/join every room for oversight.
+    const visibleRoles = currentUserRole === 'Admin' ? allRoles : [currentUserRole];
+    return visibleRoles.map((role) => ({
       id: `role-${role}`,
       name: `${role} Room`,
       role,
       type: 'role' as const,
     }));
-  }, []);
+  }, [currentUserRole]);
 
   useEffect(() => {
     if (!user) return;
@@ -126,6 +174,21 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
     selectedThreadRef.current = selectedThread;
   }, [selectedThread]);
 
+  // Keep the message list pinned to the latest message — without this, opening a
+  // thread or receiving a new message left the view sitting wherever the scroll
+  // container happened to be, which felt broken rather than like a real chat app.
+  useEffect(() => {
+    if (!selectedThread || isLoadingMessages) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages, selectedThread, isLoadingMessages]);
+
+  // Jump straight into typing once a conversation is open, like every other chat app.
+  useEffect(() => {
+    if (selectedThread && !isLoadingMessages) {
+      messageInputRef.current?.focus();
+    }
+  }, [selectedThread, isLoadingMessages]);
+
   useEffect(() => {
     if (!currentUser) return;
     const socket = getChatSocket(currentUser);
@@ -158,12 +221,20 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
     }
   }, [shouldOpenChat, activeContact]);
 
-  const handleOpenDirect = async (contact: { id: string; name: string; role: UserRole }) => {
+  const handleOpenDirect = async (contact: {
+    id: string;
+    name: string;
+    role: UserRole;
+    productId?: string;
+    productTitle?: string;
+  }) => {
     if (!currentUser) return;
     try {
       const thread = await chatApi.createThread({
         type: 'direct',
         participants: [currentUser, { id: contact.id, name: contact.name, role: contact.role }],
+        productId: contact.productId,
+        productTitle: contact.productTitle,
       });
       openThread(thread);
     } catch (err) {
@@ -229,10 +300,11 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedThread || !currentUser) return;
+    if (!newMessage.trim() || !selectedThread || !currentUser || isSending) return;
     const content = newMessage.trim();
     setNewMessage('');
     setError(null);
+    setIsSending(true);
     try {
       const sent = await chatApi.sendMessage({
         threadId: selectedThread.id,
@@ -246,6 +318,9 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
       setNewMessage(content);
       setError('Failed to send message.');
       toast.error('Failed to send message. Please try again.');
+    } finally {
+      setIsSending(false);
+      messageInputRef.current?.focus();
     }
   };
 
@@ -273,7 +348,7 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
 
   return (
     <div
-      className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 ${
+      className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white rounded-lg shadow-2xl border border-gray-200 z-50 transition-[width] duration-200 ease-in-out ${
         isMinimized ? 'w-72 sm:w-80' : 'w-full sm:w-96 h-[500px] max-w-[calc(100vw-2rem)]'
       } flex flex-col`}
     >
@@ -305,14 +380,22 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
         <>
           {!selectedThread ? (
             <div className="flex-1 overflow-y-auto">
-              {isLoadingConversations && (
-                <div className="px-4 pt-4 text-sm text-gray-500">Loading conversations...</div>
+              {isLoadingConversations && <ConversationsSkeleton />}
+              {!isLoadingConversations && conversations.length === 0 && (
+                <div className="px-4 pt-4 text-sm text-gray-500">
+                  No conversations yet — start one below.
+                </div>
               )}
               {conversations.length > 0 && (
                 <>
                   <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Conversations</div>
                   {conversations.map((thread) => {
                     const isUnread = unreadThreadIds.has(thread.id);
+                    const display = getThreadDisplay(thread, currentUser?.id);
+                    const theme = getRoleTheme(display.role);
+                    const lastMessage = thread.lastMessage;
+                    const lastMessagePrefix =
+                      lastMessage?.senderId && lastMessage.senderId === currentUser?.id ? 'You: ' : '';
                     return (
                       <button
                         key={thread.id}
@@ -320,16 +403,33 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
                         className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#0066cc] text-white rounded-full flex items-center justify-center flex-shrink-0">
-                            {(thread.title || 'C').charAt(0)}
+                          <div
+                            className={`w-10 h-10 ${theme.avatar} text-white rounded-full flex items-center justify-center flex-shrink-0 font-semibold`}
+                          >
+                            {display.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <div className="font-semibold text-sm truncate">{thread.title || 'Conversation'}</div>
+                              <div className="font-semibold text-sm truncate">{display.name}</div>
+                              {display.role && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${theme.badge}`}>
+                                  {display.role}
+                                </span>
+                              )}
                               {isUnread && <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />}
+                              {thread.updatedAt && (
+                                <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">
+                                  {formatRelativeTime(thread.updatedAt)}
+                                </span>
+                              )}
                             </div>
+                            {thread.productTitle && (
+                              <div className="text-[11px] text-[#0066cc] truncate font-medium">
+                                Re: {thread.productTitle}
+                              </div>
+                            )}
                             <div className="text-xs text-gray-500 truncate">
-                              {thread.lastMessage?.content || 'No messages yet'}
+                              {lastMessage?.content ? `${lastMessagePrefix}${lastMessage.content}` : 'No messages yet'}
                             </div>
                           </div>
                         </div>
@@ -339,47 +439,75 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
                 </>
               )}
 
-              <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Role Rooms</div>
-              {roleContacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => handleOpenContact(contact)}
-                  className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#0066cc] text-white rounded-full flex items-center justify-center">
-                      {contact.name.charAt(0)}
+              <div className="px-4 pt-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase">Role Rooms</div>
+                <div className="text-[11px] text-gray-400">Broadcast rooms — everyone with that role sees them</div>
+              </div>
+              {roleContacts.map((contact) => {
+                const theme = getRoleTheme(contact.role);
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => handleOpenContact(contact)}
+                    className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 ${theme.avatar} text-white rounded-full flex items-center justify-center font-semibold`}>
+                        {contact.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm">{contact.name}</div>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${theme.badge}`}>
+                          {contact.role}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-sm">{contact.name}</div>
-                      <div className="text-xs text-gray-500">{contact.role}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
 
-              <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Direct Messages</div>
-              {directContacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  onClick={() => handleOpenContact(contact)}
-                  className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#0066cc] text-white rounded-full flex items-center justify-center">
-                      {contact.name.charAt(0)}
+              <div className="px-4 pt-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase">Direct Messages</div>
+                <div className="text-[11px] text-gray-400">
+                  {currentUserRole === 'Admin'
+                    ? 'Message any user directly'
+                    : 'People you’re connected with (Admin, plus anyone from a product, co-founder, or mentor conversation)'}
+                </div>
+              </div>
+              {directContacts.length === 0 && (
+                <div className="px-4 py-3 text-sm text-gray-500">
+                  No contacts yet — connections show up here once you message a supplier, co-founder, or mentor.
+                </div>
+              )}
+              {directContacts.map((contact) => {
+                const theme = getRoleTheme(contact.role);
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => handleOpenContact(contact)}
+                    className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 ${theme.avatar} text-white rounded-full flex items-center justify-center font-semibold`}>
+                        {contact.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm">{contact.name}</div>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${theme.badge}`}>
+                          {contact.role}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-sm">{contact.name}</div>
-                      <div className="text-xs text-gray-500">{contact.role}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
 
               {currentUserRole !== 'Supplier' && (
                 <>
-                  <div className="px-4 pt-4 text-xs font-semibold text-gray-500 uppercase">Idea Threads</div>
+                  <div className="px-4 pt-4">
+                    <div className="text-xs font-semibold text-gray-500 uppercase">Idea Threads</div>
+                    <div className="text-[11px] text-gray-400">Discuss an approved idea with investors</div>
+                  </div>
                   {ideaContacts.length === 0 && (
                     <div className="px-4 py-3 text-sm text-gray-500">No idea threads available.</div>
                   )}
@@ -390,7 +518,7 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
                       className="w-full p-4 border-b border-gray-100 hover:bg-gray-50 text-left"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#0066cc] text-white rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-slate-600 text-white rounded-full flex items-center justify-center font-semibold">
                           {contact.name.charAt(0)}
                         </div>
                         <div>
@@ -405,63 +533,125 @@ export const ChatWidget = ({ currentUserRole }: ChatWidgetProps) => {
             </div>
           ) : (
             <>
-              <div className="p-3 border-b border-gray-200 flex items-center gap-3">
-                <button
-                  onClick={() => setSelectedThread(null)}
-                  className="text-[#0066cc] hover:underline text-sm"
-                >
-                  ← Back
-                </button>
-                <div className="font-semibold">{selectedThread.title || 'Chat'}</div>
-              </div>
+              {(() => {
+                const display = getThreadDisplay(selectedThread, currentUser?.id);
+                const theme = getRoleTheme(display.role);
+                return (
+                  <div className="border-b border-gray-200 bg-white">
+                    <div className="p-3 flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedThread(null)}
+                        aria-label="Back to conversations"
+                        title="Back to conversations"
+                        className="p-1.5 -ml-1 rounded-full text-gray-500 hover:bg-gray-100 hover:text-[#0066cc] active:bg-gray-200 transition flex-shrink-0"
+                      >
+                        <ArrowLeft className="w-[18px] h-[18px]" />
+                      </button>
+                      <div className={`w-8 h-8 ${theme.avatar} text-white rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0`}>
+                        {display.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-sm truncate">{display.name}</div>
+                          {display.role && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${theme.badge}`}>
+                              {display.role}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">{display.description}</div>
+                      </div>
+                    </div>
+                    {selectedThread.productTitle && (
+                      <div className="mx-3 mb-2 -mt-1 px-2.5 py-1.5 rounded-lg bg-blue-50 text-xs text-[#0066cc] font-medium truncate">
+                        📦 Regarding: {selectedThread.productTitle}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {isLoadingMessages && (
-                  <div className="text-sm text-gray-500">Loading messages...</div>
-                )}
+              <div className="flex-1 overflow-y-auto scroll-smooth p-4 space-y-3">
+                {isLoadingMessages && <MessagesSkeleton />}
                 {error && (
                   <div className="text-sm text-red-600">{error}</div>
                 )}
                 {!isLoadingMessages && messages.length === 0 && (
                   <div className="text-sm text-gray-500">No messages yet.</div>
                 )}
-                {messages.map((message) => {
+                {messages.map((message, index) => {
                   const isOwn = message.sender?.id === currentUser?.id;
+                  const theme = getRoleTheme(message.sender?.role);
+                  // Only show the sender's name/role/avatar once per consecutive run of
+                  // their messages (and always for the other person, so it's always
+                  // clear "from where this msg comes" — is it the Entrepreneur, the
+                  // Supplier, or someone else in a shared Role Room).
+                  const prevMessage = messages[index - 1];
+                  const showSenderInfo = !isOwn && prevMessage?.sender?.id !== message.sender?.id;
                   return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          isOwn ? 'bg-[#0066cc] text-white' : 'bg-gray-100 text-gray-900'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <span className={`text-xs ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
-                          {formatTime(message.createdAt)}
-                        </span>
+                    <div key={message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} gap-2`}>
+                      {!isOwn && (
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0 self-end ${
+                            showSenderInfo ? theme.avatar : 'invisible'
+                          }`}
+                        >
+                          {message.sender?.name?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                      )}
+                      <div className="max-w-[70%]">
+                        {showSenderInfo && (
+                          <div className="flex items-center gap-1.5 mb-1 ml-1">
+                            <span className="text-xs font-semibold text-gray-700">{message.sender?.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${theme.badge}`}>
+                              {message.sender?.role}
+                            </span>
+                          </div>
+                        )}
+                        <div
+                          className={`rounded-lg p-3 ${
+                            isOwn ? 'bg-[#0066cc] text-white' : 'bg-gray-100 text-gray-900'
+                          }`}
+                        >
+                          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                          <span className={`text-xs ${isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
+                            {formatTime(message.createdAt)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
+                <div ref={messagesEndRef} />
               </div>
 
               <div className="p-3 border-t border-gray-200">
                 <div className="flex gap-2">
                   <input
+                    ref={messageInputRef}
                     type="text"
                     value={newMessage}
                     onChange={(event) => setNewMessage(event.target.value)}
-                    onKeyPress={(event) => event.key === 'Enter' && handleSendMessage()}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
                     placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent text-sm"
+                    disabled={isSending}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0066cc] focus:border-transparent text-sm disabled:bg-gray-50 disabled:text-gray-400 transition-colors"
                   />
                   <button
                     onClick={handleSendMessage}
-                    className="bg-[#0066cc] text-white p-2 rounded-lg hover:bg-[#004080] transition"
+                    disabled={isSending || !newMessage.trim()}
+                    className="bg-[#0066cc] text-white p-2 rounded-lg hover:bg-[#004080] active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                   >
-                    <Send className="w-5 h-5" />
+                    {isSending ? (
+                      <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -477,3 +667,53 @@ const formatTime = (dateValue: string | Date) => {
   const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 };
+
+// Used for conversation-list previews, where a plain HH:MM is misleading once the
+// last message is more than a few hours old.
+const formatRelativeTime = (dateValue: string | Date) => {
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+// Placeholder rows shown while the conversation list is loading, so the widget never
+// shows a jarring blank panel or plain "Loading..." text.
+const ConversationsSkeleton = () => (
+  <div className="p-4 space-y-4 animate-pulse">
+    {[0, 1, 2].map((i) => (
+      <div key={i} className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 bg-gray-200 rounded w-2/5" />
+          <div className="h-2.5 bg-gray-200 rounded w-4/5" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+// Placeholder chat bubbles shown while a thread's message history is loading,
+// alternating sides so it reads as a real conversation, not a spinner.
+const MessagesSkeleton = () => (
+  <div className="space-y-3 animate-pulse">
+    {[
+      { mine: false, width: 'w-40' },
+      { mine: true, width: 'w-28' },
+      { mine: false, width: 'w-52' },
+      { mine: false, width: 'w-24' },
+    ].map((bubble, i) => (
+      <div key={i} className={`flex ${bubble.mine ? 'justify-end' : 'justify-start'} gap-2`}>
+        {!bubble.mine && <div className="w-7 h-7 rounded-full bg-gray-200 flex-shrink-0" />}
+        <div className={`h-10 rounded-lg bg-gray-200 ${bubble.width}`} />
+      </div>
+    ))}
+  </div>
+);
