@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Map, Wand2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -24,7 +25,7 @@ const categories = ['Technology', 'Healthcare', 'Education', 'E-commerce', 'Fina
 const stages = ['Idea / Pre-MVP', 'MVP / Prototype', 'Early Traction', 'Growth Stage'];
 
 export const StartupRoadmap = () => {
-  const [form, setForm] = useState({ title: '', category: '', stage: '' });
+  const [form, setForm] = useState({ title: '', category: '', stage: '', description: '' });
   const [phases, setPhases] = useState<Phase[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +34,15 @@ export const StartupRoadmap = () => {
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
-    if (!form.title.trim()) errors.title = 'Business title is required';
+    if (isBlank(form.title)) errors.title = 'Business title is required';
     if (!form.category) errors.category = 'Please select a category';
     if (!form.stage) errors.stage = 'Please select your current stage';
+    if (isBlank(form.description)) {
+      errors.description = 'Brief description is required.';
+    } else {
+      const descriptionError = validateMeaningfulDescription(form.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -90,7 +97,8 @@ export const StartupRoadmap = () => {
 
       {/* Form */}
       <div className="bg-white/90 rounded-2xl border border-pink-100 shadow-sm p-6">
-        <form onSubmit={handleGenerate} className="grid md:grid-cols-4 gap-4 items-start">
+        <form onSubmit={handleGenerate} className="space-y-4">
+          <div className="grid md:grid-cols-4 gap-4 items-start">
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Business Name *</label>
             <input
@@ -136,11 +144,28 @@ export const StartupRoadmap = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading || !form.title}
+            disabled={isLoading}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition text-sm"
           >
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</> : <><Wand2 className="w-4 h-4" /> Generate Roadmap</>}
           </button>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Brief Description *</label>
+            <span className="block text-xs text-gray-500 mb-2">Write a few full sentences so the roadmap can be accurate.</span>
+            <textarea
+              value={form.description}
+              onChange={(e) => {
+                setForm({ ...form, description: e.target.value });
+                if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: '' });
+              }}
+              rows={3}
+              className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.description ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+              placeholder="Describe your startup idea, what you’re building, and who it’s for..."
+            />
+            {fieldErrors.description && <p className="text-red-500 text-xs mt-1">{fieldErrors.description}</p>}
+          </div>
         </form>
         {error && (
           <div className="mt-4 flex items-center gap-2 text-red-600 bg-red-50 rounded-xl p-3 text-sm">

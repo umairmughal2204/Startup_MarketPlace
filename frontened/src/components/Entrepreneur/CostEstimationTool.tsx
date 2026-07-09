@@ -172,7 +172,7 @@ export const CostEstimationTool = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading || !form.title.trim() || !form.businessType || !form.stage || !form.description.trim()}
+            disabled={isLoading}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
           >
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Estimating...</> : <><Wand2 className="w-4 h-4" /> Generate Estimate</>}

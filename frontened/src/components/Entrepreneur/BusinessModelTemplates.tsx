@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Wand2, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -92,8 +93,13 @@ export const BusinessModelTemplates = () => {
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
-    if (!aiForm.title.trim()) errors.title = 'Business title is required';
-    if (!aiForm.description.trim()) errors.description = 'Description is required - please describe your business idea';
+    if (isBlank(aiForm.title)) errors.title = 'Business title is required';
+    if (isBlank(aiForm.description)) {
+      errors.description = 'Description is required - please describe your business idea';
+    } else {
+      const descriptionError = validateMeaningfulDescription(aiForm.description);
+      if (descriptionError) errors.description = descriptionError;
+    }
     if (!aiForm.category) errors.category = 'Please select a category';
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;

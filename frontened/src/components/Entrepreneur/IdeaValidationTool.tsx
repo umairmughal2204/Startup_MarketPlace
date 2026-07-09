@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Target, Wand2, Loader2, AlertCircle, CheckCircle, TrendingUp, ArrowRight } from 'lucide-react';
+import { isBlank, validateMeaningfulDescription } from '../../utils/validation';
 
 const API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:4000';
 
@@ -37,9 +38,25 @@ export const IdeaValidationTool = () => {
 
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
-    if (!form.title.trim()) errors.title = 'Business idea title is required';
-    if (!form.targetAudience.trim()) errors.targetAudience = 'Target audience is required';
-    if (!form.problem.trim()) errors.problem = 'Please describe the problem you are solving';
+    if (isBlank(form.title)) errors.title = 'Business idea title is required';
+    if (isBlank(form.targetAudience)) errors.targetAudience = 'Target audience is required';
+
+    if (isBlank(form.problem)) {
+      errors.problem = 'Please describe the problem you are solving';
+    } else {
+      const problemError = validateMeaningfulDescription(form.problem);
+      if (problemError) errors.problem = problemError;
+    }
+
+    if (!isBlank(form.solution)) {
+      const solutionError = validateMeaningfulDescription(form.solution);
+      if (solutionError) errors.solution = solutionError;
+    }
+
+    if (!isBlank(form.uniqueValue)) {
+      const uniqueValueError = validateMeaningfulDescription(form.uniqueValue);
+      if (uniqueValueError) errors.uniqueValue = uniqueValueError;
+    }
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -133,19 +150,27 @@ export const IdeaValidationTool = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">Your Solution</label>
               <textarea
                 value={form.solution} rows={3}
-                onChange={(e) => setForm({ ...form, solution: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+                onChange={(e) => {
+                  setForm({ ...form, solution: e.target.value });
+                  if (fieldErrors.solution) setFieldErrors({ ...fieldErrors, solution: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.solution ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                 placeholder="How does your product/service solve the problem?"
               />
+              {fieldErrors.solution && <p className="text-red-500 text-xs mt-1">{fieldErrors.solution}</p>}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Unique Value Proposition</label>
               <textarea
                 value={form.uniqueValue} rows={3}
-                onChange={(e) => setForm({ ...form, uniqueValue: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm"
+                onChange={(e) => {
+                  setForm({ ...form, uniqueValue: e.target.value });
+                  if (fieldErrors.uniqueValue) setFieldErrors({ ...fieldErrors, uniqueValue: '' });
+                }}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 text-sm ${fieldErrors.uniqueValue ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
                 placeholder="What makes you different from existing solutions?"
               />
+              {fieldErrors.uniqueValue && <p className="text-red-500 text-xs mt-1">{fieldErrors.uniqueValue}</p>}
             </div>
           </div>
           <div>
@@ -159,7 +184,7 @@ export const IdeaValidationTool = () => {
           </div>
           <button
             type="submit"
-            disabled={isLoading || !form.title || !form.targetAudience || !form.problem}
+            disabled={isLoading}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transition"
           >
             {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Validating...</> : <><Wand2 className="w-4 h-4" /> Validate My Idea</>}

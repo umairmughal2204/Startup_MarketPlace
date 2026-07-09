@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const aiService = require("../services/aiService");
 const { hashString, mixSeed, pickIndependent } = aiService;
+const { validateBody, isMeaningfulText } = require("../utils/validate");
 
 const FALLBACK_STRENGTHS_POOL = [
   "Clear concept with identifiable value proposition",
@@ -172,7 +173,18 @@ router.post("/analyze-idea", async (req, res) => {
 });
 
 // POST /api/ai/estimate-cost
-router.post("/estimate-cost", async (req, res) => {
+router.post(
+  "/estimate-cost",
+  validateBody({
+    businessType: { required: true, minLength: 2, message: "businessType is required" },
+    stage: { required: true, minLength: 2, message: "stage is required" },
+    description: {
+      required: true,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful description written in full sentences",
+    },
+  }),
+  async (req, res) => {
   const { businessType, stage, teamSize, description } = req.body || {};
   if (!businessType || !stage) {
     return res.status(400).json({ message: "businessType and stage are required" });
@@ -431,7 +443,28 @@ function getNextSteps(score) {
 }
 
 // POST /api/ai/validate-idea
-router.post("/validate-idea", async (req, res) => {
+router.post(
+  "/validate-idea",
+  validateBody({
+    title: { required: true, minLength: 3, message: "title is required" },
+    targetAudience: { required: true, minLength: 3, message: "targetAudience is required" },
+    problem: {
+      required: true,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful problem description written in full sentences",
+    },
+    solution: {
+      required: false,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful solution description written in full sentences",
+    },
+    uniqueValue: {
+      required: false,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful value proposition written in full sentences",
+    },
+  }),
+  async (req, res) => {
   const { title, targetAudience, problem, solution, competitors, uniqueValue, category } = req.body || {};
   if (!title || !targetAudience || !problem) {
     return res.status(400).json({ message: "title, targetAudience, and problem are required" });
@@ -539,7 +572,17 @@ function generateBusinessModel(title, category, description) {
 }
 
 // POST /api/ai/business-model
-router.post("/business-model", async (req, res) => {
+router.post(
+  "/business-model",
+  validateBody({
+    title: { required: true, minLength: 3, message: "title is required" },
+    description: {
+      required: true,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful description written in full sentences",
+    },
+  }),
+  async (req, res) => {
   const { title, category, description } = req.body || {};
   if (!title || !description) {
     return res.status(400).json({ message: "title and description are required" });
@@ -626,7 +669,17 @@ function generateRoadmap(title, category, stage, description = '') {
 }
 
 // POST /api/ai/roadmap
-router.post("/roadmap", async (req, res) => {
+router.post(
+  "/roadmap",
+  validateBody({
+    title: { required: true, minLength: 3, message: "title is required" },
+    description: {
+      required: true,
+      check: isMeaningfulText,
+      checkMessage: "Please enter a valid, meaningful description written in full sentences",
+    },
+  }),
+  async (req, res) => {
   const { title, category, stage, description } = req.body || {};
   if (!title) {
     return res.status(400).json({ message: "title is required" });
